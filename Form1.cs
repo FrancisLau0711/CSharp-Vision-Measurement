@@ -89,9 +89,9 @@ namespace Vision_Measurement
 
                                     case 1:
                                         len.endCoord = len.movingCoord;
-                                        len.lengthCount++;
                                         len.lines.Add(len.startCoord);
                                         len.lines.Add(len.endCoord);
+                                        len.lengthCount++;
                                         len.sequence--;
                                         break;
                                 }
@@ -187,9 +187,9 @@ namespace Vision_Measurement
                                         if (rad.coord3 != Point.Empty)
                                         {
                                             rad.endCoord = rad.coord3;
-                                            rad.radiusCount++;
                                             rad.circles.Add(rad.center);
                                             rad.circles.Add(rad.endCoord);
+                                            rad.radiusCount++;
                                             rad.sequence = 0;
                                         }
                                         break;
@@ -221,9 +221,9 @@ namespace Vision_Measurement
                                         if (dia.coord3 != Point.Empty)
                                         {
                                             dia.endCoord = dia.coord3;
-                                            dia.radiusCount++;
                                             dia.circles.Add(dia.center);
                                             dia.circles.Add(dia.endCoord);
+                                            dia.radiusCount++;
                                             dia.sequence = 0;
                                         }
                                         break;
@@ -255,11 +255,11 @@ namespace Vision_Measurement
                                         if (arc.coord3 != Point.Empty)
                                         {
                                             arc.endCoord = arc.coord3;
-                                            arc.radiusCount++;
                                             arc.circles.Add(arc.center);
                                             arc.circles.Add(arc.startCoord);
                                             arc.circles.Add(arc.coord2);
                                             arc.circles.Add(arc.endCoord);
+                                            arc.radiusCount++;
                                             arc.sequence = 0;
                                         }
                                         break;
@@ -406,7 +406,7 @@ namespace Vision_Measurement
                                         int j = 0;
                                         for (int i = 0; i < (rad.circles.Count + j); i += 2)
                                         {
-                                            bool isLineIntersectCircle = rad.CheckIntercept(rad.startCoord, rad.endCoord, rad.circles[i - j], rad.finalRadius[(i - j)/2]);
+                                            bool isLineIntersectCircle = rad.CheckIntercept(rad.startCoord, rad.endCoord, rad.circles[i - j], rad.finalRadius[(i - j) / 2]);
                                             if (isLineIntersectCircle)
                                             {
                                                 rad.RemoveCircle(i - j);
@@ -474,8 +474,8 @@ namespace Vision_Measurement
                                         int j = 0;
                                         for (int i = 0; i < (arc.circles.Count + j); i += 4)
                                         {
-                                            bool isLineIntersectCircle1 = arc.CheckIntercept(arc.startCoord, arc.endCoord, arc.circles[i - j], arc.circles[i - j + 3]);
-                                            bool isLineIntersectCircle2 = arc.CheckIntercept(arc.startCoord, arc.endCoord, arc.circles[i - j], arc.circles[i - j + 1]);
+                                            bool isLineIntersectCircle1 = len.CheckIntercept(arc.startCoord, arc.endCoord, arc.circles[i - j], arc.circles[i - j + 3]);
+                                            bool isLineIntersectCircle2 = len.CheckIntercept(arc.startCoord, arc.endCoord, arc.circles[i - j], arc.circles[i - j + 1]);
                                             if (isLineIntersectCircle1 || isLineIntersectCircle2)
                                             {
                                                 arc.RemoveCircle(i - j);
@@ -785,8 +785,11 @@ namespace Vision_Measurement
             for (int i = 0; i < len.lines.Count; i += 2)
             {
                 string length = Math.Round(len.finalLength[i / 2] * distPerPixel, displayDecimalPlaces).ToString() + "µm";
-                Point label_position = new Point { X = len.lines[i].X + (len.lines[i + 1].X - len.lines[i].X) / 2, 
-                                                   Y = len.lines[i].Y + (len.lines[i + 1].Y - len.lines[i].Y) / 2 };
+                Point label_position = new Point
+                {
+                    X = len.lines[i].X + (len.lines[i + 1].X - len.lines[i].X) / 2,
+                    Y = len.lines[i].Y + (len.lines[i + 1].Y - len.lines[i].Y) / 2
+                };
                 DrawCross(ref g, len.lines[i]);
                 DrawCross(ref g, len.lines[i + 1]);
                 g.DrawLine(arrowHarrowT, len.lines[i], len.lines[i + 1]);
@@ -830,8 +833,11 @@ namespace Vision_Measurement
                 float leftCornerY = rad.circles[i].Y - (float)rad.finalRadius[i / 2];
                 float axisLength = (float)(2 * rad.finalRadius[i / 2]);
                 string radius = Math.Round((rad.finalRadius[i / 2] * distPerPixel), displayDecimalPlaces).ToString() + "µm";
-                Point label_position = new Point { X = rad.circles[i].X + (rad.circles[i + 1].X - rad.circles[i].X) / 2,
-                                                   Y = rad.circles[i].Y + (rad.circles[i + 1].Y - rad.circles[i].Y) / 2};
+                Point label_position = new Point
+                {
+                    X = rad.circles[i].X + (rad.circles[i + 1].X - rad.circles[i].X) / 2,
+                    Y = rad.circles[i].Y + (rad.circles[i + 1].Y - rad.circles[i].Y) / 2
+                };
                 DrawCross(ref g, rad.circles[i]);
                 g.DrawLine(arrowT, rad.circles[i], rad.circles[i + 1]);
                 g.DrawEllipse(Pens.Red, leftCornerX, leftCornerY, axisLength, axisLength);
@@ -895,8 +901,11 @@ namespace Vision_Measurement
                                 string length = Math.Round(len.length * distPerPixel, displayDecimalPlaces).ToString() + "µm";
                                 DrawCross(ref g, len.startCoord);
                                 DrawCross(ref g, len.movingCoord);
-                                Point label_position = new Point { X = len.startCoord.X + (len.movingCoord.X - len.startCoord.X) / 2, 
-                                                                   Y = len.startCoord.Y + (len.movingCoord.Y - len.startCoord.Y) / 2 };
+                                Point label_position = new Point
+                                {
+                                    X = len.startCoord.X + (len.movingCoord.X - len.startCoord.X) / 2,
+                                    Y = len.startCoord.Y + (len.movingCoord.Y - len.startCoord.Y) / 2
+                                };
                                 g.DrawLine(arrowHarrowT, len.startCoord, len.movingCoord);
                                 g.DrawString(length, new Font("Comic Sans MS", 8), sb, label_position);
                             }
@@ -1063,7 +1072,7 @@ namespace Vision_Measurement
                         {
                             DrawCross(ref g, arc.startCoord);
                         }
-                        if (arc.distance >=  1)
+                        if (arc.distance >= 1)
                         {
                             if (arc.endCoord == Point.Empty)
                             {
@@ -1112,13 +1121,13 @@ namespace Vision_Measurement
     {
         private const double thresholdAngleX = 5;
         private const double thresholdAngleY = 80;
+        private int removeCount = 0;
         public bool isRemoveLine = false;
         public bool lineVertical = new bool();
         public bool lineHorizontal = new bool();
         public int lengthCount = 0;
         public int sequence = 0;
         public int removeSequence = 0;
-        private int removeCount = 0;
         public List<Point> lines = new List<Point>();
         public Point startCoord;
         public Point movingCoord;
@@ -1219,7 +1228,7 @@ namespace Vision_Measurement
         public Point newEndCoord;
         public Point epolateCoord1, epolateCoord2, epolateCoord3, epolateCoord4;
         public Point perpendicularCoord;
-        private int removeCount;
+        private int removeCount = 0;
 
         public Point CalcNewCoord(Point start, Point end, Point offsetCoord)
         {
@@ -1244,7 +1253,7 @@ namespace Vision_Measurement
             Point newStart, newEnd;
             start.Y = Math.Abs(start.Y - yMax);
             end.Y = Math.Abs(end.Y - yMax);
-            if((end.X - start.X) == 0)
+            if (start.X == end.X)
             {
                 newStart = new Point { X = start.X, Y = 0 };
                 newEnd = new Point { X = start.X, Y = yMax };
@@ -1292,7 +1301,7 @@ namespace Vision_Measurement
             lines.RemoveAt(index);
             lengthCount--;
             removeCount++;
-            for (int i = index/6; i < finalLength.Length - 1; i++)
+            for (int i = index / 6; i < finalLength.Length - 1; i++)
             {
                 finalLength[i] = finalLength[i + 1];
             };
@@ -1311,7 +1320,7 @@ namespace Vision_Measurement
             lines.RemoveAt(index);
             lengthCount--;
             removeCount++;
-            for (int i = index/4; i < finalLength.Length - 1; i++)
+            for (int i = index / 4; i < finalLength.Length - 1; i++)
             {
                 finalLength[i] = finalLength[i + 1];
             };
@@ -1396,6 +1405,14 @@ namespace Vision_Measurement
 
         public virtual bool CheckIntercept(Point lineStart, Point lineEnd, Point center, double radius)
         {
+            if(lineEnd.X != lineStart.X)
+            {
+                double m = (double)(lineEnd.Y - lineStart.Y) / (double)(lineEnd.X - lineStart.X);
+                if (m > 0)
+                {
+                    return false;
+                }
+            }
             double l = GetDistance(lineStart, lineEnd);
             double d1 = GetDistance(lineStart, center);
             double d2 = GetDistance(lineEnd, center);
@@ -1473,7 +1490,7 @@ namespace Vision_Measurement
             startAngle = Math.Atan2(y1 - center.Y, x1 - center.X) * 180 / Math.PI;
             double stopAngle = Math.Atan2(y3 - center.Y, x3 - center.X) * 180 / Math.PI;
             sweepAngle = stopAngle - startAngle;
-            if(sweepAngle < 0)
+            if (sweepAngle < 0)
             {
                 sweepAngle += 360;
             }
@@ -1498,39 +1515,6 @@ namespace Vision_Measurement
                 finalAngle[i + 1] = finalAngle[i + 3];
             };
             Array.Resize(ref finalAngle, Form1.measurementMaxCount - (removeCount * 2));
-        }
-
-        public bool CheckIntercept(Point startA, Point endA, Point startB, Point endB)
-        {
-            int orientation1 = Orientation(startA, endA, startB);
-            int orientation2 = Orientation(startA, endA, endB);
-            int orientation3 = Orientation(startB, endB, startA);
-            int orientation4 = Orientation(startB, endB, endA);
-
-            if (orientation1 != orientation2 && orientation3 != orientation4) return true;
-            if (orientation1 == 0 && OnSegment(startA, startB, endA)) return true;
-            if (orientation2 == 0 && OnSegment(startA, endB, endA)) return true;
-            if (orientation3 == 0 && OnSegment(startB, startA, endB)) return true;
-            if (orientation4 == 0 && OnSegment(startB, endA, endB)) return true;
-
-            return false;
-        }
-
-        private bool OnSegment(Point p, Point q, Point r)
-        {
-            if (q.X <= Math.Max(p.X, r.X) && q.X >= Math.Min(p.X, r.X) &&
-                q.Y <= Math.Max(p.Y, r.X) && q.Y >= Math.Min(p.Y, r.X))
-            {
-                return true;
-            }
-            return false;
-        }
-
-        private int Orientation(Point p, Point q, Point r)
-        {
-            int val = (q.Y - p.Y) * (r.X - q.X) - (q.X - p.X) * (r.Y - q.Y);
-            if (val == 0) return 0;
-            return (val > 0) ? 1 : 2;
         }
     }
 }
