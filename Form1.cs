@@ -654,28 +654,22 @@ namespace Vision_Measurement
                     {
                         if (rad.startCoord != Point.Empty)
                         {
-                            if (rad.coord2 != Point.Empty)
+                            if (rad.coord2 != Point.Empty && rad.endCoord == Point.Empty)
                             {
                                 rad.distance = rad.GetDistance(rad.coord2, e.Location);
-                                if (rad.distance > 0)
+                                if (rad.distance >= 1)
                                 {
                                     rad.coord3 = e.Location;
                                     rad.CircleEquation(rad.startCoord, rad.coord2, rad.coord3, crossScale + 1);
-                                    pictureBox1.Invalidate();
-                                }
-                                if (rad.endCoord != Point.Empty)
-                                {
-                                    rad.distance = 0;
-                                    rad.CircleEquation(rad.startCoord, rad.coord2, rad.endCoord, crossScale + 1);
-                                    rad.finalRadius[rad.radiusCount - 1] = rad.radius;
-                                    pictureBox1.Invalidate();
                                 }
                             }
-                            else
+                            if (rad.endCoord != Point.Empty)
                             {
-                                pictureBox1.Invalidate();
+                                rad.distance = 0;
+                                rad.CircleEquation(rad.startCoord, rad.coord2, rad.endCoord, crossScale + 1);
+                                rad.finalRadius[rad.radiusCount - 1] = rad.radius;
                             }
-
+                            pictureBox1.Invalidate();
                         }
                     }
                     break;
@@ -699,28 +693,22 @@ namespace Vision_Measurement
                     {
                         if (dia.startCoord != Point.Empty)
                         {
-                            if (dia.coord2 != Point.Empty)
+                            if (dia.coord2 != Point.Empty && dia.endCoord == Point.Empty)
                             {
                                 dia.distance = dia.GetDistance(dia.coord2, e.Location);
-                                if (dia.distance > 0)
+                                if (dia.distance >= 1)
                                 {
                                     dia.coord3 = e.Location;
                                     dia.CircleEquation(dia.startCoord, dia.coord2, dia.coord3, crossScale + 1);
-                                    pictureBox1.Invalidate();
-                                }
-                                if (dia.endCoord != Point.Empty)
-                                {
-                                    dia.distance = 0;
-                                    dia.CircleEquation(dia.startCoord, dia.coord2, dia.endCoord, crossScale + 1);
-                                    dia.finalRadius[dia.radiusCount - 1] = dia.radius;
-                                    pictureBox1.Invalidate();
                                 }
                             }
-                            else
+                            if (dia.endCoord != Point.Empty)
                             {
-                                pictureBox1.Invalidate();
+                                dia.distance = 0;
+                                dia.CircleEquation(dia.startCoord, dia.coord2, dia.endCoord, crossScale + 1);
+                                dia.finalRadius[dia.radiusCount - 1] = dia.radius;
                             }
-
+                            pictureBox1.Invalidate();
                         }
                     }
                     break;
@@ -744,30 +732,24 @@ namespace Vision_Measurement
                     {
                         if (arc.startCoord != Point.Empty)
                         {
-                            if (arc.coord2 != Point.Empty)
+                            if (arc.coord2 != Point.Empty && arc.endCoord == Point.Empty)
                             {
                                 arc.distance = arc.GetDistance(arc.coord2, e.Location);
-                                if (arc.distance > 0)
+                                if (arc.distance >= 1)
                                 {
                                     arc.coord3 = e.Location;
                                     arc.CircleEquation(arc.startCoord, arc.coord2, arc.coord3, crossScale + 1);
-                                    pictureBox1.Invalidate();
-                                }
-                                if (arc.endCoord != Point.Empty)
-                                {
-                                    arc.distance = 0;
-                                    arc.CircleEquation(arc.startCoord, arc.coord2, arc.endCoord, crossScale + 1);
-                                    arc.finalRadius[arc.radiusCount - 1] = arc.radius;
-                                    arc.finalAngle[(arc.radiusCount - 1) * 2] = arc.startAngle;
-                                    arc.finalAngle[2 * arc.radiusCount - 1] = arc.sweepAngle;
-                                    pictureBox1.Invalidate();
                                 }
                             }
-                            else
+                            if (arc.endCoord != Point.Empty)
                             {
-                                pictureBox1.Invalidate();
+                                arc.distance = 0;
+                                arc.CircleEquation(arc.startCoord, arc.coord2, arc.endCoord, crossScale + 1);
+                                arc.finalRadius[arc.radiusCount - 1] = arc.radius;
+                                arc.finalAngle[(arc.radiusCount - 1) * 2] = arc.startAngle;
+                                arc.finalAngle[2 * arc.radiusCount - 1] = arc.sweepAngle;
                             }
-
+                            pictureBox1.Invalidate();
                         }
                     }
                     break;
@@ -870,7 +852,7 @@ namespace Vision_Measurement
                 };
                 Point extendedPoint = dia.ExtendLine(dia.circles[i + 1], dia.circles[i]);
                 DrawCross(ref g, dia.circles[i]);
-                g.DrawLine(arrowT, dia.circles[i + 1], extendedPoint);
+                g.DrawLine(arrowHarrowT, dia.circles[i + 1], extendedPoint);
                 g.DrawEllipse(Pens.Red, leftCornerX, leftCornerY, axisLength, axisLength);
                 g.DrawString(radius, new Font("Comic Sans MS", 8), sb, label_position);
             }
@@ -1004,7 +986,7 @@ namespace Vision_Measurement
                         {
                             DrawCross(ref g, rad.startCoord);
                         }
-                        if (rad.distance != 0)
+                        if (rad.distance >= 1)
                         {
                             if (rad.endCoord == Point.Empty)
                             {
@@ -1042,7 +1024,7 @@ namespace Vision_Measurement
                         {
                             DrawCross(ref g, dia.startCoord);
                         }
-                        if (dia.distance != 0)
+                        if (dia.distance >= 1)
                         {
                             if (dia.endCoord == Point.Empty)
                             {
@@ -1060,7 +1042,7 @@ namespace Vision_Measurement
                                 DrawCross(ref g, dia.coord2);
                                 DrawCross(ref g, dia.coord3);
                                 DrawCross(ref g, dia.center);
-                                g.DrawLine(arrowT, dia.coord3, extendedPoint);
+                                g.DrawLine(arrowHarrowT, dia.coord3, extendedPoint);
                                 g.DrawEllipse(Pens.Red, leftCornerX, leftCornerY, axisLength, axisLength);
                                 g.DrawString(radius, new Font("Comic Sans MS", 8), sb, label_position);
                             }
@@ -1081,7 +1063,7 @@ namespace Vision_Measurement
                         {
                             DrawCross(ref g, arc.startCoord);
                         }
-                        if (arc.distance != 0)
+                        if (arc.distance >=  1)
                         {
                             if (arc.endCoord == Point.Empty)
                             {
