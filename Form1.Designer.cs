@@ -34,6 +34,8 @@
             this.toolStripLabel1 = new System.Windows.Forms.ToolStripLabel();
             this.tscbxMode = new System.Windows.Forms.ToolStripComboBox();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
+            this.toolStripLabel2 = new System.Windows.Forms.ToolStripLabel();
+            this.Scale = new System.Windows.Forms.ToolStripTextBox();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.panel1 = new System.Windows.Forms.Panel();
             this.toolStrip1.SuspendLayout();
@@ -49,7 +51,9 @@
             this.toolStripSeparator1,
             this.toolStripLabel1,
             this.tscbxMode,
-            this.toolStripSeparator2});
+            this.toolStripSeparator2,
+            this.toolStripLabel2,
+            this.Scale});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
             this.toolStrip1.Size = new System.Drawing.Size(603, 33);
@@ -90,6 +94,23 @@
             // 
             this.toolStripSeparator2.Name = "toolStripSeparator2";
             this.toolStripSeparator2.Size = new System.Drawing.Size(6, 33);
+            // 
+            // toolStripLabel2
+            // 
+            this.toolStripLabel2.Font = new System.Drawing.Font("Comic Sans MS", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.toolStripLabel2.ForeColor = System.Drawing.Color.DarkSlateBlue;
+            this.toolStripLabel2.Name = "toolStripLabel2";
+            this.toolStripLabel2.Size = new System.Drawing.Size(65, 28);
+            this.toolStripLabel2.Text = "Scale: ";
+            // 
+            // Scale
+            // 
+            this.Scale.Font = new System.Drawing.Font("Comic Sans MS", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.Scale.ForeColor = System.Drawing.Color.Purple;
+            this.Scale.Name = "Scale";
+            this.Scale.Size = new System.Drawing.Size(100, 33);
+            this.Scale.Text = "3.45";
+            this.Scale.TextChanged += new System.EventHandler(this.SetScale);
             // 
             // pictureBox1
             // 
@@ -140,6 +161,8 @@
         private System.Windows.Forms.ToolStripLabel toolStripLabel1;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
+        private System.Windows.Forms.ToolStripLabel toolStripLabel2;
+        private System.Windows.Forms.ToolStripTextBox Scale;
     }
 }
 

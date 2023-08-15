@@ -20,8 +20,8 @@ namespace Vision_Measurement
     {
         private EMeasurement Measurement => (EMeasurement)tscbxMode.ComboBox.SelectedItem;
         public const int measurementMaxCount = Int16.MaxValue;
-        public const double distPerPixel = 3.45;
         public const int displayDecimalPlaces = 4;
+        private double distPerPixel = 3.45;
         private const float crossScale = 5;
         private const float smallArcScale = 10;
         readonly Pen arrowHarrowT = new Pen(Color.Red);
@@ -97,6 +97,71 @@ namespace Vision_Measurement
                                 }
                             }
                             break;
+                        case EMeasurement.PARALLEL:
+                            len.sequence = 0;
+                            per.sequence = 0;
+                            rad.sequence = 0;
+                            dia.sequence = 0;
+                            arc.sequence = 0;
+                            if (par.removeSequence < 1)
+                            {
+                                par.isRemoveLine = false;
+                                switch (par.sequence)
+                                {
+                                    case 0:
+                                        par.startCoord = e.Location;
+                                        par.movingCoord2 = Point.Empty;
+                                        par.epolateCoord1 = Point.Empty;
+                                        par.epolateCoord2 = Point.Empty;
+                                        par.sequence++;
+                                        break;
+                                    case 1:
+                                        par.endCoord = par.movingCoord;
+                                        par.sequence++;
+                                        break;
+                                    case 2:
+                                        par.offsetCoord = par.movingCoord2;
+                                        par.lines.Add(par.epolateCoord1);
+                                        par.lines.Add(par.epolateCoord2);
+                                        par.lines.Add(par.epolateCoord3);
+                                        par.lines.Add(par.epolateCoord4);
+                                        par.lines.Add(par.offsetCoord);
+                                        par.lines.Add(par.perpendicularCoord);
+                                        par.lengthCount++;
+                                        break;
+                                }
+                            }
+                            break;
+                        case EMeasurement.PERPENDICULAR:
+                            len.sequence = 0;
+                            par.sequence = 0;
+                            rad.sequence = 0;
+                            dia.sequence = 0;
+                            arc.sequence = 0;
+                            if (per.removeSequence < 1)
+                            {
+                                per.isRemoveLine = false;
+                                switch (per.sequence)
+                                {
+                                    case 0:
+                                        per.startCoord = e.Location;
+                                        per.sequence++;
+                                        break;
+                                    case 1:
+                                        per.endCoord = per.movingCoord;
+                                        per.sequence++;
+                                        break;
+                                    case 2:
+                                        per.offsetCoord = per.movingCoord2;
+                                        per.lines.Add(per.epolateCoord1);
+                                        per.lines.Add(per.epolateCoord2);
+                                        per.lines.Add(per.offsetCoord);
+                                        per.lines.Add(per.perpendicularCoord);
+                                        per.lengthCount++;
+                                        break;
+                                }
+                            }
+                            break;
                         case EMeasurement.RADIUS:
                             len.sequence = 0;
                             par.sequence = 0;
@@ -161,72 +226,6 @@ namespace Vision_Measurement
                                             dia.circles.Add(dia.endCoord);
                                             dia.sequence = 0;
                                         }
-                                        break;
-                                }
-                            }
-                            break;
-                        case EMeasurement.PARALLEL:
-                            len.sequence = 0;
-                            per.sequence = 0;
-                            rad.sequence = 0;
-                            dia.sequence = 0;
-                            arc.sequence = 0;
-                            if (par.removeSequence < 1)
-                            {
-                                par.isRemoveLine = false;
-                                switch (par.sequence)
-                                {
-                                    case 0:
-                                        par.startCoord = e.Location;
-                                        par.movingCoord2 = Point.Empty;
-                                        par.epolateCoord1 = Point.Empty;
-                                        par.epolateCoord2 = Point.Empty;
-                                        par.sequence++;
-                                        break;
-                                    case 1:
-                                        par.endCoord = par.movingCoord;
-                                        par.sequence++;
-                                        break;
-                                    case 2:
-                                        par.offsetCoord = par.movingCoord2;
-                                        par.lines.Add(par.epolateCoord1);
-                                        par.lines.Add(par.epolateCoord2);
-                                        par.lines.Add(par.epolateCoord3);
-                                        par.lines.Add(par.epolateCoord4);
-                                        par.lines.Add(par.offsetCoord);
-                                        par.lines.Add(par.perpendicularCoord);
-                                        par.lengthCount++;
-                                        break;
-                                }
-                            }
-                            break;
-                        case EMeasurement.PERPENDICULAR:
-                            len.sequence = 0;
-                            par.sequence = 0;
-                            rad.sequence = 0;
-                            dia.sequence = 0;
-                            arc.sequence = 0;
-                            if (per.removeSequence < 1)
-                            {
-                                per.isRemoveLine = false;
-                                switch (per.sequence)
-                                {
-                                    case 0:
-                                        per.startCoord = e.Location;
-                                        per.movingCoord2 = Point.Empty;
-                                        per.sequence++;
-                                        break;
-                                    case 1:
-                                        per.endCoord = per.movingCoord;
-                                        per.sequence++;
-                                        break;
-                                    case 2:
-                                        per.offsetCoord = per.movingCoord2;
-                                        per.lines.Add(per.epolateCoord1);
-                                        per.lines.Add(per.epolateCoord2);
-                                        per.lines.Add(per.offsetCoord);
-                                        per.lines.Add(per.perpendicularCoord);
-                                        per.lengthCount++;
                                         break;
                                 }
                             }
@@ -306,74 +305,6 @@ namespace Vision_Measurement
                                 }
                             }
                             break;
-                        case EMeasurement.RADIUS:
-                            len.removeSequence = 0;
-                            par.removeSequence = 0;
-                            per.removeSequence = 0;
-                            dia.removeSequence = 0;
-                            arc.removeSequence = 0;
-                            if (rad.sequence < 1)
-                            {
-                                rad.isRemoveCircle = true;
-                                switch (rad.removeSequence)
-                                {
-                                    case 0:
-                                        rad.endCoord = Point.Empty;
-                                        rad.startCoord = e.Location;
-                                        rad.removeSequence++;
-                                        break;
-
-                                    case 1:
-                                        rad.endCoord = rad.coord3;
-                                        int j = 0;
-                                        for (int i = 0; i < (rad.circles.Count + j); i += 2)
-                                        {
-                                            bool isLineIntersectCircle = rad.CheckIntercept(rad.startCoord, rad.endCoord, rad.circles[i - j], rad.finalRadius[(i - j)/2]);
-                                            if (isLineIntersectCircle)
-                                            {
-                                                rad.RemoveCircle(i - j);
-                                                j += 2;
-                                            }
-                                        }
-                                        rad.removeSequence--;
-                                        break;
-                                }
-                            }
-                            break;
-                        case EMeasurement.DIAMETER:
-                            len.removeSequence = 0;
-                            par.removeSequence = 0;
-                            per.removeSequence = 0;
-                            rad.removeSequence = 0;
-                            arc.removeSequence = 0;
-                            if (dia.sequence < 1)
-                            {
-                                dia.isRemoveCircle = true;
-                                switch (dia.removeSequence)
-                                {
-                                    case 0:
-                                        dia.endCoord = Point.Empty;
-                                        dia.startCoord = e.Location;
-                                        dia.removeSequence++;
-                                        break;
-
-                                    case 1:
-                                        dia.endCoord = dia.coord3;
-                                        int j = 0;
-                                        for (int i = 0; i < (dia.circles.Count + j); i += 2)
-                                        {
-                                            bool isLineIntersectCircle = dia.CheckIntercept(dia.startCoord, dia.endCoord, dia.circles[i - j], dia.finalRadius[(i - j) / 2]);
-                                            if (isLineIntersectCircle)
-                                            {
-                                                dia.RemoveCircle(i - j);
-                                                j += 2;
-                                            }
-                                        }
-                                        dia.removeSequence--;
-                                        break;
-                                }
-                            }
-                            break;
                         case EMeasurement.PARALLEL:
                             len.removeSequence = 0;
                             per.removeSequence = 0;
@@ -449,6 +380,74 @@ namespace Vision_Measurement
                                         per.movingCoord2 = Point.Empty;
                                         per.offsetCoord = Point.Empty;
                                         per.removeSequence--;
+                                        break;
+                                }
+                            }
+                            break;
+                        case EMeasurement.RADIUS:
+                            len.removeSequence = 0;
+                            par.removeSequence = 0;
+                            per.removeSequence = 0;
+                            dia.removeSequence = 0;
+                            arc.removeSequence = 0;
+                            if (rad.sequence < 1)
+                            {
+                                rad.isRemoveCircle = true;
+                                switch (rad.removeSequence)
+                                {
+                                    case 0:
+                                        rad.endCoord = Point.Empty;
+                                        rad.startCoord = e.Location;
+                                        rad.removeSequence++;
+                                        break;
+
+                                    case 1:
+                                        rad.endCoord = rad.coord3;
+                                        int j = 0;
+                                        for (int i = 0; i < (rad.circles.Count + j); i += 2)
+                                        {
+                                            bool isLineIntersectCircle = rad.CheckIntercept(rad.startCoord, rad.endCoord, rad.circles[i - j], rad.finalRadius[(i - j)/2]);
+                                            if (isLineIntersectCircle)
+                                            {
+                                                rad.RemoveCircle(i - j);
+                                                j += 2;
+                                            }
+                                        }
+                                        rad.removeSequence--;
+                                        break;
+                                }
+                            }
+                            break;
+                        case EMeasurement.DIAMETER:
+                            len.removeSequence = 0;
+                            par.removeSequence = 0;
+                            per.removeSequence = 0;
+                            rad.removeSequence = 0;
+                            arc.removeSequence = 0;
+                            if (dia.sequence < 1)
+                            {
+                                dia.isRemoveCircle = true;
+                                switch (dia.removeSequence)
+                                {
+                                    case 0:
+                                        dia.endCoord = Point.Empty;
+                                        dia.startCoord = e.Location;
+                                        dia.removeSequence++;
+                                        break;
+
+                                    case 1:
+                                        dia.endCoord = dia.coord3;
+                                        int j = 0;
+                                        for (int i = 0; i < (dia.circles.Count + j); i += 2)
+                                        {
+                                            bool isLineIntersectCircle = dia.CheckIntercept(dia.startCoord, dia.endCoord, dia.circles[i - j], dia.finalRadius[(i - j) / 2]);
+                                            if (isLineIntersectCircle)
+                                            {
+                                                dia.RemoveCircle(i - j);
+                                                j += 2;
+                                            }
+                                        }
+                                        dia.removeSequence--;
                                         break;
                                 }
                             }
@@ -535,96 +534,6 @@ namespace Vision_Measurement
                             len.length = 0;
                             len.finalLength[len.lengthCount - 1] = len.GetDistance(len.startCoord, len.endCoord);
                             pictureBox1.Invalidate();
-                        }
-                    }
-                    break;
-                case EMeasurement.RADIUS:
-                    if (rad.isRemoveCircle)
-                    {
-                        if (rad.startCoord != Point.Empty && rad.endCoord == Point.Empty)
-                        {
-                            rad.coord3 = e.Location;
-                            pictureBox1.Invalidate();
-                        }
-                        if (rad.endCoord != Point.Empty)
-                        {
-                            rad.startCoord = Point.Empty;
-                            rad.endCoord = Point.Empty;
-                            rad.isRemoveCircle = false;
-                            pictureBox1.Invalidate();
-                        }
-                    }
-                    else
-                    {
-                        if (rad.startCoord != Point.Empty)
-                        {
-                            if (rad.coord2 != Point.Empty)
-                            {
-                                rad.distance = rad.GetDistance(rad.coord2, e.Location);
-                                if (rad.distance > 0)
-                                {
-                                    rad.coord3 = e.Location;
-                                    rad.CircleEquation(rad.startCoord, rad.coord2, rad.coord3, crossScale + 1);
-                                    pictureBox1.Invalidate();
-                                }
-                                if (rad.endCoord != Point.Empty)
-                                {
-                                    rad.distance = 0;
-                                    rad.CircleEquation(rad.startCoord, rad.coord2, rad.endCoord, crossScale + 1);
-                                    rad.finalRadius[rad.radiusCount - 1] = rad.radius;
-                                    pictureBox1.Invalidate();
-                                }
-                            }
-                            else
-                            {
-                                pictureBox1.Invalidate();
-                            }
-
-                        }
-                    }
-                    break;
-                case EMeasurement.DIAMETER:
-                    if (dia.isRemoveCircle)
-                    {
-                        if (dia.startCoord != Point.Empty && dia.endCoord == Point.Empty)
-                        {
-                            dia.coord3 = e.Location;
-                            pictureBox1.Invalidate();
-                        }
-                        if (dia.endCoord != Point.Empty)
-                        {
-                            dia.startCoord = Point.Empty;
-                            dia.endCoord = Point.Empty;
-                            dia.isRemoveCircle = false;
-                            pictureBox1.Invalidate();
-                        }
-                    }
-                    else
-                    {
-                        if (dia.startCoord != Point.Empty)
-                        {
-                            if (dia.coord2 != Point.Empty)
-                            {
-                                dia.distance = dia.GetDistance(dia.coord2, e.Location);
-                                if (dia.distance > 0)
-                                {
-                                    dia.coord3 = e.Location;
-                                    dia.CircleEquation(dia.startCoord, dia.coord2, dia.coord3, crossScale + 1);
-                                    pictureBox1.Invalidate();
-                                }
-                                if (dia.endCoord != Point.Empty)
-                                {
-                                    dia.distance = 0;
-                                    dia.CircleEquation(dia.startCoord, dia.coord2, dia.endCoord, crossScale + 1);
-                                    dia.finalRadius[dia.radiusCount - 1] = dia.radius;
-                                    pictureBox1.Invalidate();
-                                }
-                            }
-                            else
-                            {
-                                pictureBox1.Invalidate();
-                            }
-
                         }
                     }
                     break;
@@ -725,6 +634,96 @@ namespace Vision_Measurement
                         }
                     }
                     break;
+                case EMeasurement.RADIUS:
+                    if (rad.isRemoveCircle)
+                    {
+                        if (rad.startCoord != Point.Empty && rad.endCoord == Point.Empty)
+                        {
+                            rad.coord3 = e.Location;
+                            pictureBox1.Invalidate();
+                        }
+                        if (rad.endCoord != Point.Empty)
+                        {
+                            rad.startCoord = Point.Empty;
+                            rad.endCoord = Point.Empty;
+                            rad.isRemoveCircle = false;
+                            pictureBox1.Invalidate();
+                        }
+                    }
+                    else
+                    {
+                        if (rad.startCoord != Point.Empty)
+                        {
+                            if (rad.coord2 != Point.Empty)
+                            {
+                                rad.distance = rad.GetDistance(rad.coord2, e.Location);
+                                if (rad.distance > 0)
+                                {
+                                    rad.coord3 = e.Location;
+                                    rad.CircleEquation(rad.startCoord, rad.coord2, rad.coord3, crossScale + 1);
+                                    pictureBox1.Invalidate();
+                                }
+                                if (rad.endCoord != Point.Empty)
+                                {
+                                    rad.distance = 0;
+                                    rad.CircleEquation(rad.startCoord, rad.coord2, rad.endCoord, crossScale + 1);
+                                    rad.finalRadius[rad.radiusCount - 1] = rad.radius;
+                                    pictureBox1.Invalidate();
+                                }
+                            }
+                            else
+                            {
+                                pictureBox1.Invalidate();
+                            }
+
+                        }
+                    }
+                    break;
+                case EMeasurement.DIAMETER:
+                    if (dia.isRemoveCircle)
+                    {
+                        if (dia.startCoord != Point.Empty && dia.endCoord == Point.Empty)
+                        {
+                            dia.coord3 = e.Location;
+                            pictureBox1.Invalidate();
+                        }
+                        if (dia.endCoord != Point.Empty)
+                        {
+                            dia.startCoord = Point.Empty;
+                            dia.endCoord = Point.Empty;
+                            dia.isRemoveCircle = false;
+                            pictureBox1.Invalidate();
+                        }
+                    }
+                    else
+                    {
+                        if (dia.startCoord != Point.Empty)
+                        {
+                            if (dia.coord2 != Point.Empty)
+                            {
+                                dia.distance = dia.GetDistance(dia.coord2, e.Location);
+                                if (dia.distance > 0)
+                                {
+                                    dia.coord3 = e.Location;
+                                    dia.CircleEquation(dia.startCoord, dia.coord2, dia.coord3, crossScale + 1);
+                                    pictureBox1.Invalidate();
+                                }
+                                if (dia.endCoord != Point.Empty)
+                                {
+                                    dia.distance = 0;
+                                    dia.CircleEquation(dia.startCoord, dia.coord2, dia.endCoord, crossScale + 1);
+                                    dia.finalRadius[dia.radiusCount - 1] = dia.radius;
+                                    pictureBox1.Invalidate();
+                                }
+                            }
+                            else
+                            {
+                                pictureBox1.Invalidate();
+                            }
+
+                        }
+                    }
+                    break;
                 case EMeasurement.ARC:
                     if (arc.isRemoveCircle)
                     {
@@ -803,13 +802,43 @@ namespace Vision_Measurement
             //Length
             for (int i = 0; i < len.lines.Count; i += 2)
             {
-                string length = Math.Round(len.finalLength[i / 2], displayDecimalPlaces).ToString() + "µm";
+                string length = Math.Round(len.finalLength[i / 2] * distPerPixel, displayDecimalPlaces).ToString() + "µm";
                 Point label_position = new Point { X = len.lines[i].X + (len.lines[i + 1].X - len.lines[i].X) / 2, 
                                                    Y = len.lines[i].Y + (len.lines[i + 1].Y - len.lines[i].Y) / 2 };
                 DrawCross(ref g, len.lines[i]);
                 DrawCross(ref g, len.lines[i + 1]);
                 g.DrawLine(arrowHarrowT, len.lines[i], len.lines[i + 1]);
                 g.DrawString(length, font, sb, label_position);
+            }
+
+            //Parallel
+            for (int i = 0; i < par.lines.Count; i += 6)
+            {
+                string perpendicularDistance = Math.Round(par.finalLength[i / 6] * distPerPixel, displayDecimalPlaces).ToString() + "µm";
+                Point label_position = new Point
+                {
+                    X = par.lines[i + 4].X + (par.lines[i + 5].X - par.lines[i + 4].X) / 2,
+                    Y = par.lines[i + 4].Y + (par.lines[i + 5].Y - par.lines[i + 4].Y) / 2
+                };
+                g.DrawLine(Pens.Yellow, par.lines[i], par.lines[i + 1]);
+                g.DrawLine(dashedPen2, par.lines[i + 2], par.lines[i + 3]);
+                g.DrawLine(arrowHarrowT, par.lines[i + 4], par.lines[i + 5]);
+                g.DrawString(perpendicularDistance, new Font("Comic Sans MS", 8), sb, label_position);
+            }
+
+            //Perpendicular
+            for (int i = 0; i < per.lines.Count; i += 4)
+            {
+                string perpendicularDistance = Math.Round(per.finalLength[i / 4] * distPerPixel, displayDecimalPlaces).ToString() + "µm";
+                Point label_position = new Point
+                {
+                    X = per.lines[i + 2].X + (per.lines[i + 3].X - per.lines[i + 2].X) / 2,
+                    Y = per.lines[i + 2].Y + (per.lines[i + 3].Y - per.lines[i + 2].Y) / 2
+                };
+                DrawCross(ref g, per.lines[i + 2]);
+                g.DrawLine(Pens.Yellow, per.lines[i], per.lines[i + 1]);
+                g.DrawLine(arrowHarrowT, per.lines[i + 2], per.lines[i + 3]);
+                g.DrawString(perpendicularDistance, new Font("Comic Sans MS", 8), sb, label_position);
             }
 
             //Radius
@@ -846,44 +875,14 @@ namespace Vision_Measurement
                 g.DrawString(radius, new Font("Comic Sans MS", 8), sb, label_position);
             }
 
-            //Parallel
-            for(int i = 0; i < par.lines.Count; i += 6)
-            {
-                string perpendicularDistance = Math.Round(par.finalLength[i / 6] * distPerPixel, displayDecimalPlaces).ToString() + "µm";
-                Point label_position = new Point
-                {
-                    X = par.lines[i + 4].X + (par.lines[i + 5].X - par.lines[i + 4].X) / 2,
-                    Y = par.lines[i + 4].Y + (par.lines[i + 5].Y - par.lines[i + 4].Y) / 2
-                };
-                g.DrawLine(Pens.Yellow, par.lines[i], par.lines[i + 1]);
-                g.DrawLine(dashedPen2, par.lines[i + 2], par.lines[i + 3]);
-                g.DrawLine(arrowHarrowT, par.lines[i + 4], par.lines[i + 5]);
-                g.DrawString(perpendicularDistance, new Font("Comic Sans MS", 8), sb, label_position);
-            }
-
-            //Perpendicular
-            for (int i = 0; i < per.lines.Count; i += 4)
-            {
-                string perpendicularDistance = Math.Round(per.finalLength[i / 4] * distPerPixel, displayDecimalPlaces).ToString() + "µm";
-                Point label_position = new Point
-                {
-                    X = per.lines[i + 2].X + (per.lines[i + 3].X - per.lines[i + 2].X) / 2,
-                    Y = per.lines[i + 2].Y + (per.lines[i + 3].Y - per.lines[i + 2].Y) / 2
-                };
-                DrawCross(ref g, per.lines[i + 2]);
-                g.DrawLine(Pens.Yellow, per.lines[i], per.lines[i + 1]);
-                g.DrawLine(arrowHarrowT, per.lines[i + 2], per.lines[i + 3]);
-                g.DrawString(perpendicularDistance, new Font("Comic Sans MS", 8), sb, label_position);
-            }
-
             // Arc
             for (int i = 0; i < arc.circles.Count; i += 4)
             {
                 float leftCornerX = arc.circles[i].X - (float)arc.finalRadius[i / 4];
                 float leftCornerY = arc.circles[i].Y - (float)arc.finalRadius[i / 4];
                 float axisLength = (float)(2 * arc.finalRadius[i / 4]);
-                float sleftCornerX = arc.center.X - smallArcScale;
-                float sleftCornerY = arc.center.Y - smallArcScale;
+                float sleftCornerX = arc.circles[i].X - smallArcScale;
+                float sleftCornerY = arc.circles[i].Y - smallArcScale;
                 float saxisLength = 2 * smallArcScale;
                 string radius = Math.Round((arc.finalRadius[i / 4] * distPerPixel), displayDecimalPlaces).ToString() + "µm";
                 string sweepAngle = Math.Round(Math.Abs(arc.finalAngle[(i / 2) + 1]), 2).ToString() + "°";
@@ -911,7 +910,7 @@ namespace Vision_Measurement
                         {
                             if (len.endCoord == Point.Empty)
                             {
-                                string length = Math.Round(len.length, displayDecimalPlaces).ToString() + "µm";
+                                string length = Math.Round(len.length * distPerPixel, displayDecimalPlaces).ToString() + "µm";
                                 DrawCross(ref g, len.startCoord);
                                 DrawCross(ref g, len.movingCoord);
                                 Point label_position = new Point { X = len.startCoord.X + (len.movingCoord.X - len.startCoord.X) / 2, 
@@ -919,6 +918,75 @@ namespace Vision_Measurement
                                 g.DrawLine(arrowHarrowT, len.startCoord, len.movingCoord);
                                 g.DrawString(length, new Font("Comic Sans MS", 8), sb, label_position);
                             }
+                        }
+                    }
+                    break;
+                case EMeasurement.PARALLEL:
+                    if (par.isRemoveLine)
+                    {
+                        if (par.endCoord == Point.Empty)
+                        {
+                            g.DrawLine(dashedPen, par.startCoord, par.movingCoord);
+                        }
+                    }
+                    else
+                    {
+                        if (par.movingCoord != Point.Empty && par.movingCoord2 == Point.Empty)
+                        {
+                            DrawCross(ref g, par.startCoord);
+                            g.DrawLine(Pens.Red, par.startCoord, par.movingCoord);
+                        }
+                        if (par.newEndCoord != Point.Empty)
+                        {
+                            string perpendicularDistance = Math.Round(par.length * distPerPixel, displayDecimalPlaces).ToString() + "µm";
+                            Point label_position = new Point
+                            {
+                                X = par.movingCoord2.X + (par.perpendicularCoord.X - par.movingCoord2.X) / 2,
+                                Y = par.movingCoord2.Y + (par.perpendicularCoord.Y - par.movingCoord2.Y) / 2
+                            };
+                            DrawCross(ref g, par.startCoord);
+                            DrawCross(ref g, par.endCoord);
+                            DrawCross(ref g, par.movingCoord2);
+                            DrawCross(ref g, par.newEndCoord);
+                            g.DrawLine(Pens.Red, par.startCoord, par.endCoord);
+                            g.DrawLine(Pens.Red, par.movingCoord2, par.newEndCoord);
+                            g.DrawLine(arrowHarrowT, par.movingCoord2, par.perpendicularCoord);
+                            g.DrawString(perpendicularDistance, new Font("Comic Sans MS", 8), sb, label_position);
+                            g.DrawLine(dashedPen2, par.epolateCoord1, par.epolateCoord2);
+                            g.DrawLine(dashedPen2, par.epolateCoord3, par.epolateCoord4);
+                        }
+                    }
+                    break;
+                case EMeasurement.PERPENDICULAR:
+                    if (per.isRemoveLine)
+                    {
+                        if (per.endCoord == Point.Empty)
+                        {
+                            g.DrawLine(dashedPen, per.startCoord, per.movingCoord);
+                        }
+                    }
+                    else
+                    {
+                        if (per.movingCoord != Point.Empty && per.movingCoord2 == Point.Empty)
+                        {
+                            DrawCross(ref g, per.startCoord);
+                            g.DrawLine(Pens.Red, per.startCoord, per.movingCoord);
+                        }
+                        if (per.movingCoord2 != Point.Empty)
+                        {
+                            string perpendicularDistance = Math.Round(per.length * distPerPixel, displayDecimalPlaces).ToString() + "µm";
+                            Point label_position = new Point
+                            {
+                                X = per.movingCoord2.X + (per.perpendicularCoord.X - per.movingCoord2.X) / 2,
+                                Y = per.movingCoord2.Y + (per.perpendicularCoord.Y - per.movingCoord2.Y) / 2
+                            };
+                            DrawCross(ref g, per.startCoord);
+                            DrawCross(ref g, per.endCoord);
+                            DrawCross(ref g, per.movingCoord2);
+                            g.DrawLine(Pens.Red, per.startCoord, per.endCoord);
+                            g.DrawLine(arrowHarrowT, per.movingCoord2, per.perpendicularCoord);
+                            g.DrawString(perpendicularDistance, new Font("Comic Sans MS", 8), sb, label_position);
+                            g.DrawLine(dashedPen2, per.epolateCoord1, per.epolateCoord2);
                         }
                     }
                     break;
@@ -999,75 +1067,6 @@ namespace Vision_Measurement
                         }
                     }
                     break;
-                case EMeasurement.PARALLEL:
-                    if (par.isRemoveLine)
-                    {
-                        if (par.endCoord == Point.Empty)
-                        {
-                            g.DrawLine(dashedPen, par.startCoord, par.movingCoord);
-                        }
-                    }
-                    else
-                    {
-                        if (par.movingCoord != Point.Empty && par.movingCoord2 == Point.Empty)
-                        {
-                            DrawCross(ref g, par.startCoord);
-                            g.DrawLine(Pens.Red, par.startCoord, par.movingCoord);
-                        }
-                        if (par.newEndCoord != Point.Empty)
-                        {
-                            string perpendicularDistance = Math.Round(par.length * distPerPixel, displayDecimalPlaces).ToString() + "µm";
-                            Point label_position = new Point
-                            {
-                                X = par.movingCoord2.X + (par.perpendicularCoord.X - par.movingCoord2.X) / 2,
-                                Y = par.movingCoord2.Y + (par.perpendicularCoord.Y - par.movingCoord2.Y) / 2
-                            };
-                            DrawCross(ref g, par.startCoord);
-                            DrawCross(ref g, par.endCoord);
-                            DrawCross(ref g, par.movingCoord2);
-                            DrawCross(ref g, par.newEndCoord);
-                            g.DrawLine(Pens.Red, par.startCoord, par.endCoord);
-                            g.DrawLine(Pens.Red, par.movingCoord2, par.newEndCoord);
-                            g.DrawLine(arrowHarrowT, par.movingCoord2, par.perpendicularCoord);
-                            g.DrawString(perpendicularDistance, new Font("Comic Sans MS", 8), sb, label_position);
-                            g.DrawLine(dashedPen2, par.epolateCoord1, par.epolateCoord2);
-                            g.DrawLine(dashedPen2, par.epolateCoord3, par.epolateCoord4);
-                        }
-                    }
-                    break;
-                case EMeasurement.PERPENDICULAR:
-                    if (per.isRemoveLine)
-                    {
-                        if (per.endCoord == Point.Empty)
-                        {
-                            g.DrawLine(dashedPen, per.startCoord, per.movingCoord);
-                        }
-                    }
-                    else
-                    {
-                        if (per.movingCoord != Point.Empty && per.movingCoord2 == Point.Empty)
-                        {
-                            DrawCross(ref g, per.startCoord);
-                            g.DrawLine(Pens.Red, per.startCoord, per.movingCoord);
-                        }
-                        if (per.movingCoord2 != Point.Empty)
-                        {
-                            string perpendicularDistance = Math.Round(per.length * distPerPixel, displayDecimalPlaces).ToString() + "µm";
-                            Point label_position = new Point
-                            {
-                                X = per.movingCoord2.X + (per.perpendicularCoord.X - per.movingCoord2.X) / 2,
-                                Y = per.movingCoord2.Y + (per.perpendicularCoord.Y - per.movingCoord2.Y) / 2
-                            };
-                            DrawCross(ref g, per.startCoord);
-                            DrawCross(ref g, per.endCoord);
-                            DrawCross(ref g, per.movingCoord2);
-                            g.DrawLine(Pens.Red, per.startCoord, per.endCoord);
-                            g.DrawLine(arrowHarrowT, per.movingCoord2, per.perpendicularCoord);
-                            g.DrawString(perpendicularDistance, new Font("Comic Sans MS", 8), sb, label_position);
-                            g.DrawLine(dashedPen2, per.epolateCoord1, per.epolateCoord2);
-                        }
-                    }
-                    break;
                 case EMeasurement.ARC:
                     if (arc.isRemoveCircle)
                     {
@@ -1111,10 +1110,19 @@ namespace Vision_Measurement
             }
         }
 
-        public void DrawCross(ref Graphics g, Point point)
+        private void DrawCross(ref Graphics g, Point point)
         {
             g.DrawLine(new Pen(Color.Red), point.X - crossScale, point.Y - crossScale, point.X + crossScale, point.Y + crossScale);
             g.DrawLine(new Pen(Color.Red), point.X - crossScale, point.Y + crossScale, point.X + crossScale, point.Y - crossScale);
+        }
+
+        private void SetScale(object sender, EventArgs e)
+        {
+            double scale;
+            if (Double.TryParse(Scale.Text, out scale))
+            {
+                distPerPixel = scale;
+            }
         }
     }
 
@@ -1135,8 +1143,6 @@ namespace Vision_Measurement
         public Point endCoord;
         public double length;
         public double[] finalLength = new double[Form1.measurementMaxCount];
-        public double m = new double();
-        public double c = new double();
 
         public virtual void RemoveLine(int index)
         {
@@ -1150,12 +1156,10 @@ namespace Vision_Measurement
             };
             Array.Resize(ref finalLength, Form1.measurementMaxCount - removeCount);
         }
-        public virtual double GetDistance(Point start, Point end)
+        public double GetDistance(Point start, Point end)
         {
             double x_diff = end.X - start.X;
             double y_diff = end.Y - start.Y;
-            x_diff *= Form1.distPerPixel;
-            y_diff *= Form1.distPerPixel;
             return Math.Sqrt(Math.Pow(x_diff, 2) + Math.Pow(y_diff, 2));
         }
         public double GetAngle(Point start, Point end)
@@ -1199,8 +1203,7 @@ namespace Vision_Measurement
             int orientation3 = Orientation(startB, endB, startA);
             int orientation4 = Orientation(startB, endB, endA);
 
-            if (orientation1 != orientation2 && orientation3 != orientation4)
-                return true;
+            if (orientation1 != orientation2 && orientation3 != orientation4) return true;
             if (orientation1 == 0 && OnSegment(startA, startB, endA)) return true;
             if (orientation2 == 0 && OnSegment(startA, endB, endA)) return true;
             if (orientation3 == 0 && OnSegment(startB, startA, endB)) return true;
@@ -1235,13 +1238,6 @@ namespace Vision_Measurement
         public Point epolateCoord1, epolateCoord2, epolateCoord3, epolateCoord4;
         public Point perpendicularCoord;
         private int removeCount;
-
-        public override double GetDistance(Point start, Point end)
-        {
-            double x_diff = end.X - start.X;
-            double y_diff = end.Y - start.Y;
-            return Math.Sqrt(Math.Pow(x_diff, 2) + Math.Pow(y_diff, 2));
-        }
 
         public Point CalcNewCoord(Point start, Point end, Point offsetCoord)
         {
@@ -1490,12 +1486,15 @@ namespace Vision_Measurement
                 return;
             }
             double sr = h * h + k * k - c;
-            double d = GetDistance(coord1, coord3);
             radius = (float)Math.Sqrt(sr);
             center = new Point { X = (int)h, Y = (int)k };
-            startAngle = Math.Atan2((y1 - center.Y), (x1 - center.X)) * 180 / Math.PI;
-            double stopAngle = Math.Atan2((y3 - center.Y), (x3 - center.X)) * 180 / Math.PI;
+            startAngle = Math.Atan2(y1 - center.Y, x1 - center.X) * 180 / Math.PI;
+            double stopAngle = Math.Atan2(y3 - center.Y, x3 - center.X) * 180 / Math.PI;
             sweepAngle = stopAngle - startAngle;
+            if(sweepAngle < 0)
+            {
+                sweepAngle += 360;
+            }
         }
 
         public override void RemoveCircle(int index)
@@ -1526,8 +1525,7 @@ namespace Vision_Measurement
             int orientation3 = Orientation(startB, endB, startA);
             int orientation4 = Orientation(startB, endB, endA);
 
-            if (orientation1 != orientation2 && orientation3 != orientation4)
-                return true;
+            if (orientation1 != orientation2 && orientation3 != orientation4) return true;
             if (orientation1 == 0 && OnSegment(startA, startB, endA)) return true;
             if (orientation2 == 0 && OnSegment(startA, endB, endA)) return true;
             if (orientation3 == 0 && OnSegment(startB, startA, endB)) return true;
