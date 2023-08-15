@@ -21,16 +21,17 @@ namespace Vision_Measurement
         private EMeasurement Measurement => (EMeasurement)tscbxMode.ComboBox.SelectedItem;
         public const int measurementMaxCount = Int16.MaxValue;
         public const double distPerPixel = 3.45;
-        private const int displayDecimalPlaces = 4;
+        public const int displayDecimalPlaces = 4;
         private const float crossScale = 5;
+        private const float smallArcScale = 10;
         readonly Pen arrowHarrowT = new Pen(Color.Red);
         readonly Pen arrowT = new Pen(Color.Red);
         readonly Font font = new Font("Comic Sans MS", 8);
         readonly Length len = new Length();
-        readonly Radius rad = new Radius();
-        readonly Diameter dia = new Diameter();
         readonly Parallel par = new Parallel();
         readonly Perpendicular per = new Perpendicular();
+        readonly Radius rad = new Radius();
+        readonly Diameter dia = new Diameter();
         readonly Arc arc = new Arc();
         public Form1()
         {
@@ -41,13 +42,7 @@ namespace Vision_Measurement
             WindowState = FormWindowState.Maximized;
 
         }
-        private void InitializePen()
-        {
-            AdjustableArrowCap arrow = new AdjustableArrowCap(3, 3);
-            arrowHarrowT.CustomStartCap = arrow;
-            arrowHarrowT.CustomEndCap = arrow;
-            arrowT.CustomEndCap = arrow;
-        }
+
         private void InitializeControl()
         {
             panel1.Size = new Size(1260, 620);
@@ -58,6 +53,14 @@ namespace Vision_Measurement
             tscbxMode.ForeColor = Color.Purple;
             tscbxMode.DropDownStyle = ComboBoxStyle.DropDownList;
             tscbxMode.Width = 150;
+        }
+
+        private void InitializePen()
+        {
+            AdjustableArrowCap arrow = new AdjustableArrowCap(3, 3);
+            arrowHarrowT.CustomStartCap = arrow;
+            arrowHarrowT.CustomEndCap = arrow;
+            arrowT.CustomEndCap = arrow;
         }
 
         private void PictureBox1MouseClick(object sender, MouseEventArgs e)
@@ -121,8 +124,6 @@ namespace Vision_Measurement
                                             rad.endCoord = rad.coord3;
                                             rad.radiusCount++;
                                             rad.circles.Add(rad.center);
-                                            rad.circles.Add(rad.startCoord);
-                                            rad.circles.Add(rad.coord2);
                                             rad.circles.Add(rad.endCoord);
                                             rad.sequence = 0;
                                         }
@@ -157,8 +158,6 @@ namespace Vision_Measurement
                                             dia.endCoord = dia.coord3;
                                             dia.radiusCount++;
                                             dia.circles.Add(dia.center);
-                                            dia.circles.Add(dia.startCoord);
-                                            dia.circles.Add(dia.coord2);
                                             dia.circles.Add(dia.endCoord);
                                             dia.sequence = 0;
                                         }
@@ -179,6 +178,9 @@ namespace Vision_Measurement
                                 {
                                     case 0:
                                         par.startCoord = e.Location;
+                                        par.movingCoord2 = Point.Empty;
+                                        par.epolateCoord1 = Point.Empty;
+                                        par.epolateCoord2 = Point.Empty;
                                         par.sequence++;
                                         break;
                                     case 1:
@@ -187,6 +189,8 @@ namespace Vision_Measurement
                                         break;
                                     case 2:
                                         par.offsetCoord = par.movingCoord2;
+                                        par.lines.Add(par.epolateCoord1);
+                                        par.lines.Add(par.epolateCoord2);
                                         par.lines.Add(par.epolateCoord3);
                                         par.lines.Add(par.epolateCoord4);
                                         par.lines.Add(par.offsetCoord);
@@ -209,6 +213,7 @@ namespace Vision_Measurement
                                 {
                                     case 0:
                                         per.startCoord = e.Location;
+                                        per.movingCoord2 = Point.Empty;
                                         per.sequence++;
                                         break;
                                     case 1:
@@ -217,6 +222,8 @@ namespace Vision_Measurement
                                         break;
                                     case 2:
                                         per.offsetCoord = per.movingCoord2;
+                                        per.lines.Add(per.epolateCoord1);
+                                        per.lines.Add(per.epolateCoord2);
                                         per.lines.Add(per.offsetCoord);
                                         per.lines.Add(per.perpendicularCoord);
                                         per.lengthCount++;
@@ -319,13 +326,13 @@ namespace Vision_Measurement
                                     case 1:
                                         rad.endCoord = rad.coord3;
                                         int j = 0;
-                                        for (int i = 0; i < (rad.circles.Count + j); i += 4)
+                                        for (int i = 0; i < (rad.circles.Count + j); i += 2)
                                         {
-                                            bool isLineIntersectCircle = rad.CheckIntercept(rad.startCoord, rad.endCoord, rad.circles[i - j], rad.finalRadius[(i - j)/4]);
+                                            bool isLineIntersectCircle = rad.CheckIntercept(rad.startCoord, rad.endCoord, rad.circles[i - j], rad.finalRadius[(i - j)/2]);
                                             if (isLineIntersectCircle)
                                             {
                                                 rad.RemoveCircle(i - j);
-                                                j += 4;
+                                                j += 2;
                                             }
                                         }
                                         rad.removeSequence--;
@@ -353,13 +360,13 @@ namespace Vision_Measurement
                                     case 1:
                                         dia.endCoord = dia.coord3;
                                         int j = 0;
-                                        for (int i = 0; i < (dia.circles.Count + j); i += 4)
+                                        for (int i = 0; i < (dia.circles.Count + j); i += 2)
                                         {
-                                            bool isLineIntersectCircle = dia.CheckIntercept(dia.startCoord, dia.endCoord, dia.circles[i - j], dia.finalRadius[(i - j) / 4]);
+                                            bool isLineIntersectCircle = dia.CheckIntercept(dia.startCoord, dia.endCoord, dia.circles[i - j], dia.finalRadius[(i - j) / 2]);
                                             if (isLineIntersectCircle)
                                             {
                                                 dia.RemoveCircle(i - j);
-                                                j += 4;
+                                                j += 2;
                                             }
                                         }
                                         dia.removeSequence--;
@@ -387,20 +394,14 @@ namespace Vision_Measurement
                                     case 1:
                                         par.endCoord = par.movingCoord;
                                         int j = 0;
-                                        for (int i = 0; i < (par.lines.Count + j); i += 4)
+                                        for (int i = 0; i < (par.lines.Count + j); i += 6)
                                         {
-                                            bool isLineSegmentsIntersect = par.CheckIntercept(par.startCoord, par.endCoord, par.lines[i - j], par.lines[i - j + 1]);
+                                            bool isLineSegmentsIntersect = par.CheckIntercept(par.startCoord, par.endCoord, par.lines[i - j + 2], par.lines[i - j + 3]);
                                             if (isLineSegmentsIntersect)
                                             {
                                                 par.RemoveLine(i - j);
-                                                j += 4;
+                                                j += 6;
                                             }
-                                        }
-                                        if (par.lines.Count == 0)
-                                        {
-                                            par.movingCoord2 = Point.Empty;
-                                            par.epolateCoord1 = Point.Empty;
-                                            par.epolateCoord2 = Point.Empty;
                                         }
                                         par.sequence = 0;
                                         par.newEndCoord = Point.Empty;
@@ -429,13 +430,13 @@ namespace Vision_Measurement
                                     case 1:
                                         per.endCoord = per.movingCoord;
                                         int j = 0;
-                                        for (int i = 0; i < (per.lines.Count + j); i += 2)
+                                        for (int i = 0; i < (per.lines.Count + j); i += 4)
                                         {
-                                            bool isLineSegmentsIntersect = per.CheckIntercept(per.startCoord, per.endCoord, per.lines[i - j], per.lines[i - j + 1]);
+                                            bool isLineSegmentsIntersect = per.CheckIntercept(per.startCoord, per.endCoord, per.lines[i - j + 2], per.lines[i - j + 3]);
                                             if (isLineSegmentsIntersect)
                                             {
                                                 per.RemoveLine(i - j);
-                                                j += 2;
+                                                j += 4;
                                             }
                                         }
                                         if (per.lines.Count == 0)
@@ -446,6 +447,7 @@ namespace Vision_Measurement
                                         per.sequence = 0;
                                         per.startCoord = Point.Empty;
                                         per.movingCoord2 = Point.Empty;
+                                        per.offsetCoord = Point.Empty;
                                         per.removeSequence--;
                                         break;
                                 }
@@ -714,12 +716,12 @@ namespace Vision_Measurement
                             per.movingCoord2 = e.Location;
                             (per.epolateCoord1, per.epolateCoord2) = per.Extrapolation(per.startCoord, per.endCoord, pictureBox1.Size.Width, pictureBox1.Height);
                             (per.perpendicularCoord, per.length) = per.CalcPerpendicularDistance(per.epolateCoord1, per.epolateCoord2, per.movingCoord2);
+                            if (per.offsetCoord != Point.Empty)
+                            {
+                                per.finalLength[per.lengthCount - 1] = per.length;
+                                per.offsetCoord = Point.Empty;
+                            }
                             pictureBox1.Invalidate();
-                        }
-                        if (per.offsetCoord != Point.Empty)
-                        {
-                            per.finalLength[per.lengthCount - 1] = per.length;
-                            per.offsetCoord = Point.Empty;
                         }
                     }
                     break;
@@ -811,72 +813,66 @@ namespace Vision_Measurement
             }
 
             //Radius
-            for (int i = 0; i < rad.circles.Count; i += 4)
+            for (int i = 0; i < rad.circles.Count; i += 2)
             {
-                float leftCornerX = rad.circles[i].X - (float)rad.finalRadius[i / 4];
-                float leftCornerY = rad.circles[i].Y - (float)rad.finalRadius[i / 4];
-                float axisLength = (float)(2 * rad.finalRadius[i / 4]);
-                string radius = Math.Round((rad.finalRadius[i / 4]*distPerPixel), displayDecimalPlaces).ToString() + "µm";
-                Point label_position = new Point { X = rad.circles[i].X + (rad.circles[i + 3].X - rad.circles[i].X) / 2,
-                                                   Y = rad.circles[i].Y + (rad.circles[i + 3].Y - rad.circles[i].Y) / 2};
+                float leftCornerX = rad.circles[i].X - (float)rad.finalRadius[i / 2];
+                float leftCornerY = rad.circles[i].Y - (float)rad.finalRadius[i / 2];
+                float axisLength = (float)(2 * rad.finalRadius[i / 2]);
+                string radius = Math.Round((rad.finalRadius[i / 2] * distPerPixel), displayDecimalPlaces).ToString() + "µm";
+                Point label_position = new Point { X = rad.circles[i].X + (rad.circles[i + 1].X - rad.circles[i].X) / 2,
+                                                   Y = rad.circles[i].Y + (rad.circles[i + 1].Y - rad.circles[i].Y) / 2};
                 DrawCross(ref g, rad.circles[i]);
-                g.DrawLine(arrowT, rad.circles[i], rad.circles[i + 3]);
+                g.DrawLine(arrowT, rad.circles[i], rad.circles[i + 1]);
                 g.DrawEllipse(Pens.Red, leftCornerX, leftCornerY, axisLength, axisLength);
                 g.DrawString(radius, new Font("Comic Sans MS", 8), sb, label_position);
             }
 
             //Diameter
-            for (int i = 0; i < dia.circles.Count; i += 4)
+            for (int i = 0; i < dia.circles.Count; i += 2)
             {
-                float leftCornerX = dia.circles[i].X - (float)dia.finalRadius[i / 4];
-                float leftCornerY = dia.circles[i].Y - (float)dia.finalRadius[i / 4];
-                float axisLength = (float)(2 * dia.finalRadius[i / 4]);
-                string radius = Math.Round((dia.finalRadius[i / 4] * distPerPixel), displayDecimalPlaces).ToString() + "µm";
+                float leftCornerX = dia.circles[i].X - (float)dia.finalRadius[i / 2];
+                float leftCornerY = dia.circles[i].Y - (float)dia.finalRadius[i / 2];
+                float axisLength = (float)(2 * dia.finalRadius[i / 2]);
+                string radius = Math.Round((dia.finalRadius[i / 2] * distPerPixel), displayDecimalPlaces).ToString() + "µm";
                 Point label_position = new Point
                 {
-                    X = dia.circles[i].X + (dia.circles[i + 3].X - dia.circles[i].X) / 2,
-                    Y = dia.circles[i].Y + (dia.circles[i + 3].Y - dia.circles[i].Y) / 2
+                    X = dia.circles[i].X + (dia.circles[i + 1].X - dia.circles[i].X) / 2,
+                    Y = dia.circles[i].Y + (dia.circles[i + 1].Y - dia.circles[i].Y) / 2
                 };
-                Point extendedPoint = dia.ExtendLine(dia.circles[i + 3], dia.circles[i]);
+                Point extendedPoint = dia.ExtendLine(dia.circles[i + 1], dia.circles[i]);
                 DrawCross(ref g, dia.circles[i]);
-                g.DrawLine(arrowT, dia.circles[i + 3], extendedPoint);
+                g.DrawLine(arrowT, dia.circles[i + 1], extendedPoint);
                 g.DrawEllipse(Pens.Red, leftCornerX, leftCornerY, axisLength, axisLength);
                 g.DrawString(radius, new Font("Comic Sans MS", 8), sb, label_position);
             }
 
             //Parallel
-            if(par.lines.Count > 0)
+            for(int i = 0; i < par.lines.Count; i += 6)
             {
-                g.DrawLine(Pens.Yellow, par.epolateCoord1, par.epolateCoord2);
-            }
-            for(int i = 0; i < par.lines.Count; i += 4)
-            {
-                string perpendicularDistance = Math.Round(par.finalLength[i / 4] * distPerPixel, displayDecimalPlaces).ToString() + "µm";
+                string perpendicularDistance = Math.Round(par.finalLength[i / 6] * distPerPixel, displayDecimalPlaces).ToString() + "µm";
                 Point label_position = new Point
                 {
-                    X = par.lines[i + 2].X + (par.lines[i + 3].X - par.lines[i + 2].X) / 2,
-                    Y = par.lines[i + 2].Y + (par.lines[i + 3].Y - par.lines[i + 2].Y) / 2
+                    X = par.lines[i + 4].X + (par.lines[i + 5].X - par.lines[i + 4].X) / 2,
+                    Y = par.lines[i + 4].Y + (par.lines[i + 5].Y - par.lines[i + 4].Y) / 2
                 };
-                g.DrawLine(arrowHarrowT, par.lines[i + 2], par.lines[i + 3]);
+                g.DrawLine(Pens.Yellow, par.lines[i], par.lines[i + 1]);
+                g.DrawLine(dashedPen2, par.lines[i + 2], par.lines[i + 3]);
+                g.DrawLine(arrowHarrowT, par.lines[i + 4], par.lines[i + 5]);
                 g.DrawString(perpendicularDistance, new Font("Comic Sans MS", 8), sb, label_position);
-                g.DrawLine(dashedPen2, par.lines[i], par.lines[i + 1]);
             }
 
             //Perpendicular
-            if (per.lines.Count > 0)
+            for (int i = 0; i < per.lines.Count; i += 4)
             {
-                g.DrawLine(Pens.Yellow, per.epolateCoord1, per.epolateCoord2);
-            }
-            for (int i = 0; i < per.lines.Count; i += 2)
-            {
-                string perpendicularDistance = Math.Round(per.finalLength[i / 2] * distPerPixel, displayDecimalPlaces).ToString() + "µm";
+                string perpendicularDistance = Math.Round(per.finalLength[i / 4] * distPerPixel, displayDecimalPlaces).ToString() + "µm";
                 Point label_position = new Point
                 {
-                    X = per.lines[i].X + (per.lines[i + 1].X - per.lines[i].X) / 2,
-                    Y = per.lines[i].Y + (per.lines[i + 1].Y - per.lines[i].Y) / 2
+                    X = per.lines[i + 2].X + (per.lines[i + 3].X - per.lines[i + 2].X) / 2,
+                    Y = per.lines[i + 2].Y + (per.lines[i + 3].Y - per.lines[i + 2].Y) / 2
                 };
-                DrawCross(ref g, per.lines[i]);
-                g.DrawLine(arrowHarrowT, per.lines[i], per.lines[i + 1]);
+                DrawCross(ref g, per.lines[i + 2]);
+                g.DrawLine(Pens.Yellow, per.lines[i], per.lines[i + 1]);
+                g.DrawLine(arrowHarrowT, per.lines[i + 2], per.lines[i + 3]);
                 g.DrawString(perpendicularDistance, new Font("Comic Sans MS", 8), sb, label_position);
             }
 
@@ -886,18 +882,17 @@ namespace Vision_Measurement
                 float leftCornerX = arc.circles[i].X - (float)arc.finalRadius[i / 4];
                 float leftCornerY = arc.circles[i].Y - (float)arc.finalRadius[i / 4];
                 float axisLength = (float)(2 * arc.finalRadius[i / 4]);
+                float sleftCornerX = arc.center.X - smallArcScale;
+                float sleftCornerY = arc.center.Y - smallArcScale;
+                float saxisLength = 2 * smallArcScale;
                 string radius = Math.Round((arc.finalRadius[i / 4] * distPerPixel), displayDecimalPlaces).ToString() + "µm";
                 string sweepAngle = Math.Round(Math.Abs(arc.finalAngle[(i / 2) + 1]), 2).ToString() + "°";
-                Point label_position = new Point
-                {
-                    X = arc.circles[i].X + (arc.circles[i + 3].X - arc.circles[i].X) / 2,
-                    Y = arc.circles[i].Y + (arc.circles[i + 3].Y - arc.circles[i].Y) / 2
-                };
                 DrawCross(ref g, arc.circles[i]);
                 g.DrawArc(Pens.Red, leftCornerX, leftCornerY, axisLength, axisLength, (float)arc.finalAngle[i / 2], (float)arc.finalAngle[(i / 2) + 1]);
+                g.DrawArc(Pens.Red, sleftCornerX, sleftCornerY, saxisLength, saxisLength, (float)arc.finalAngle[i / 2], (float)arc.finalAngle[(i / 2) + 1]);
                 g.DrawLine(dashedPen2, arc.circles[i], arc.circles[i + 1]);
                 g.DrawLine(dashedPen2, arc.circles[i], arc.circles[i + 3]);
-                g.DrawString(radius, new Font("Comic Sans MS", 8), sb, label_position);
+                g.DrawString(radius, new Font("Comic Sans MS", 8), sb, arc.circles[i + 3]);
                 g.DrawString(sweepAngle, new Font("Comic Sans MS", 8), sb, arc.circles[i]);
             }
             switch (Measurement)
@@ -948,7 +943,7 @@ namespace Vision_Measurement
                                 string radius = Math.Round((rad.radius * distPerPixel), displayDecimalPlaces).ToString() + "µm";
                                 float leftCornerX = rad.center.X - (float)rad.radius;
                                 float leftCornerY = rad.center.Y - (float)rad.radius;
-                                float axisLength = (float)(rad.radius + rad.radius);
+                                float axisLength = (float)(2 * rad.radius);
                                 Point label_position = new Point
                                 {
                                     X = rad.center.X + (rad.coord3.X - rad.center.X) / 2,
@@ -986,7 +981,7 @@ namespace Vision_Measurement
                                 string radius = Math.Round(dia.radius * distPerPixel, displayDecimalPlaces).ToString() + "µm";
                                 float leftCornerX = dia.center.X - dia.radius;
                                 float leftCornerY = dia.center.Y - dia.radius;
-                                float axisLength = (float)(dia.radius + dia.radius);
+                                float axisLength = (float)(2 * dia.radius);
                                 Point label_position = new Point
                                 {
                                     X = dia.center.X + (dia.coord3.X - dia.center.X) / 2,
@@ -1095,20 +1090,19 @@ namespace Vision_Measurement
                                 string sweepAngle = Math.Round(Math.Abs(arc.sweepAngle), 2).ToString() + "°";
                                 float leftCornerX = arc.center.X - arc.radius;
                                 float leftCornerY = arc.center.Y - arc.radius;
-                                float axisLength = (float)(arc.radius + arc.radius);
-                                Point label_position = new Point
-                                {
-                                    X = arc.center.X + (arc.coord3.X - arc.center.X) / 2,
-                                    Y = arc.center.Y + (arc.coord3.Y - arc.center.Y) / 2
-                                };
+                                float axisLength = (float)(2 * arc.radius);
+                                float sleftCornerX = arc.center.X - smallArcScale;
+                                float sleftCornerY = arc.center.Y - smallArcScale;
+                                float saxisLength = 2 * smallArcScale;
                                 DrawCross(ref g, arc.startCoord);
                                 DrawCross(ref g, arc.coord2);
                                 DrawCross(ref g, arc.coord3);
                                 DrawCross(ref g, arc.center);
                                 g.DrawArc(Pens.Red, leftCornerX, leftCornerY, axisLength, axisLength, (float)arc.startAngle, (float)arc.sweepAngle);
+                                g.DrawArc(Pens.Red, sleftCornerX, sleftCornerY, saxisLength, saxisLength, (float)arc.startAngle, (float)arc.sweepAngle);
                                 g.DrawLine(dashedPen2, arc.center, arc.startCoord);
                                 g.DrawLine(dashedPen2, arc.center, arc.coord3);
-                                g.DrawString(radius, new Font("Comic Sans MS", 8), sb, label_position);
+                                g.DrawString(radius, new Font("Comic Sans MS", 8), sb, arc.coord3);
                                 g.DrawString(sweepAngle, new Font("Comic Sans MS", 8), sb, arc.center);
                             }
                         }
@@ -1272,6 +1266,12 @@ namespace Vision_Measurement
             Point newStart, newEnd;
             start.Y = Math.Abs(start.Y - yMax);
             end.Y = Math.Abs(end.Y - yMax);
+            if((end.X - start.X) == 0)
+            {
+                newStart = new Point { X = start.X, Y = 0 };
+                newEnd = new Point { X = start.X, Y = yMax };
+                return (newStart, newEnd);
+            }
             double m = (double)(end.Y - start.Y) / (double)(end.X - start.X);
             double c = end.Y - m * end.X;
             if (c < 0)
@@ -1310,9 +1310,11 @@ namespace Vision_Measurement
             lines.RemoveAt(index);
             lines.RemoveAt(index);
             lines.RemoveAt(index);
+            lines.RemoveAt(index);
+            lines.RemoveAt(index);
             lengthCount--;
             removeCount++;
-            for (int i = index/4; i < finalLength.Length - 1; i++)
+            for (int i = index/6; i < finalLength.Length - 1; i++)
             {
                 finalLength[i] = finalLength[i + 1];
             };
@@ -1327,9 +1329,11 @@ namespace Vision_Measurement
         {
             lines.RemoveAt(index);
             lines.RemoveAt(index);
+            lines.RemoveAt(index);
+            lines.RemoveAt(index);
             lengthCount--;
             removeCount++;
-            for (int i = index/2; i < finalLength.Length - 1; i++)
+            for (int i = index/4; i < finalLength.Length - 1; i++)
             {
                 finalLength[i] = finalLength[i + 1];
             };
@@ -1356,8 +1360,6 @@ namespace Vision_Measurement
 
         public virtual void RemoveCircle(int index)
         {
-            circles.RemoveAt(index);
-            circles.RemoveAt(index);
             circles.RemoveAt(index);
             circles.RemoveAt(index);
             radiusCount--;
