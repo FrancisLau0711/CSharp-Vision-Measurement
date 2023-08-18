@@ -2,12 +2,10 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
-using System.Windows.Forms;
 using System.Drawing.Imaging;
-using System.Reflection.Emit;
-using System.Runtime.ConstrainedExecution;
-using static System.Windows.Forms.LinkLabel;
-using System.Runtime.Remoting.Messaging;
+using System.Windows.Forms;
+using Emgu.CV;
+using Emgu.CV.Structure;
 
 namespace Vision_Measurement
 {
@@ -24,16 +22,16 @@ namespace Vision_Measurement
     public partial class Form1 : Form
     {
         private EMeasurement Measurement => (EMeasurement)tscbxMode.ComboBox.SelectedItem;
-        public const int measurementMaxCount = Int16.MaxValue;
+        public const int measurementMaxCount = short.MaxValue;
         public const int displayDecimalPlaces = 3;
-        private double distPerPixel = 3.45;
+        private readonly double distPerPixel = 3.45;
         private const float crossScale = 5;
         private const float smallArcScale = 10;
         private float scale = 1.0F;
         private float last_scale = 0.0F;
         private bool isGrayScale = false;
-        private static Color mainColor = Color.Cyan;
-        private static Color subColor = Color.Lime;
+        private static readonly Color mainColor = Color.Cyan;
+        private static readonly Color subColor = Color.Lime;
         private Image rawImage;
         readonly Pen regular = new Pen(mainColor);
         readonly Pen arrowHarrowT = new Pen(mainColor);
@@ -60,17 +58,16 @@ namespace Vision_Measurement
             WindowState = FormWindowState.Maximized;
         }
 
-        /*
-        public Form1(Image<Gray, byte> image, double ddp): this()
+        public Form1(Image<Bgr, byte> image, double ddp): this()
         {
             InitializeComponent();
             InitializeControl();
             InitializePen();
             Text = "Vision Measurement";
             WindowState = FormWindowState.Maximized;
-            rawImage = image;
+            rawImage = image.ToBitmap();
             distPerPixel = ddp;
-        }*/
+        }
 
         private void InitializeControl()
         {
@@ -148,7 +145,7 @@ namespace Vision_Measurement
             Bitmap newBitmap = new Bitmap(original.Width, original.Height);
             using (Graphics g = Graphics.FromImage(newBitmap))
             {
-                ColorMatrix colorMatrix = new ColorMatrix( new float[][] { new float[] {.3f, .3f, .3f, 0, 0},
+                ColorMatrix colorMatrix = new ColorMatrix(new float[][] { new float[] {.3f, .3f, .3f, 0, 0},
                                                                            new float[] {.59f, .59f, .59f, 0, 0},
                                                                            new float[] {.11f, .11f, .11f, 0, 0},
                                                                            new float[] {0, 0, 0, 1, 0},
@@ -165,7 +162,7 @@ namespace Vision_Measurement
 
         private void ToggleColor(object sender, EventArgs e)
         {
-            if(rawImage == null)
+            if (rawImage == null)
             {
                 return;
             }
@@ -187,7 +184,7 @@ namespace Vision_Measurement
         private void ZoomIn(object sender, EventArgs e)
         {
             scale += 0.1F;
-            if(scale >= 2.0F)
+            if (scale >= 2.0F)
             {
                 scale = 2.0F;
             }
@@ -281,7 +278,7 @@ namespace Vision_Measurement
 
                                     case 1:
                                         len.endCoord = len.movingCoord;
-                                        if(len.startCoord.X  > len.endCoord.X)
+                                        if (len.startCoord.X > len.endCoord.X)
                                         {
                                             (len.startCoord, len.endCoord) = (len.endCoord, len.startCoord);
                                         }
@@ -381,6 +378,7 @@ namespace Vision_Measurement
                                         per.rawLines.Add(per.perpendicularCoord);
                                         per.rawLines.Add(per.perpendicularCoord2);
                                         per.rawLines.Add(per.extendedCoord);
+                                        per.rawLines.Add(per.endCoord);
                                         per.offsetCoord = PointF.Empty;
                                         per.extendedCoord = PointF.Empty;
                                         per.sequence = 2;
@@ -525,12 +523,12 @@ namespace Vision_Measurement
                     }
                     break;
                 case MouseButtons.Right:
-                    if (len.sequence < 1 && 
-                       (par.sequence == 3 || par.sequence == 0) && 
-                       (per.sequence == 3 || per.sequence == 0) && 
-                        rad.sequence < 1 && 
-                        dia.sequence < 1 && 
-                        arc.sequence < 1) 
+                    if (len.sequence < 1 &&
+                       (par.sequence == 3 || par.sequence == 0) &&
+                       (per.sequence == 3 || per.sequence == 0) &&
+                        rad.sequence < 1 &&
+                        dia.sequence < 1 &&
+                        arc.sequence < 1)
                     {
                         len.isRemoveLine = true;
                         switch (len.removeSequence)
@@ -569,13 +567,13 @@ namespace Vision_Measurement
                                     par.epolateCoord2 = PointF.Empty;
                                 }
                                 j = 0;
-                                for (int i = 0; i < (per.lines.Count + j); i += 6)
+                                for (int i = 0; i < (per.lines.Count + j); i += 7)
                                 {
                                     bool isLineSegmentsIntersect = per.CheckIntercept(len.startCoord, len.endCoord, per.lines[i - j + 3], per.lines[i - j + 4]);
                                     if (isLineSegmentsIntersect)
                                     {
                                         per.RemoveLine(i - j);
-                                        j += 6;
+                                        j += 7;
                                     }
                                 }
                                 if (per.lines.Count == 0)
@@ -766,6 +764,7 @@ namespace Vision_Measurement
                         if (per.offsetCoord != PointF.Empty)
                         {
                             per.movingCoord2 = e.Location;
+                            (per.endCoord, _) = dim.CalcPerpendicularDistance(per.epolateCoord1, per.epolateCoord2, per.offsetCoord, scale);
                             (per.perpendicularCoord, _) = dim.CalcPerpendicularDistance(per.epolateCoord1, per.epolateCoord2, per.movingCoord2, scale);
                             (per.perpendicularCoord2, _) = dim.CalcPerpendicularDistance(per.epolateCoord3, per.epolateCoord4, per.movingCoord2, scale);
                             pictureBox1.Invalidate();
@@ -927,20 +926,11 @@ namespace Vision_Measurement
             }
 
             //Perpendicular
-            for (int i = 0; i < per.lines.Count; i += 6)
+            for (int i = 0; i < per.lines.Count; i += 7)
             {
-                double parallel = dim.GetDistance(per.lines[i + 2], per.lines[i + 4]);
-                string perpendicularDistance = Math.Round(per.finalLength[i / 6] * distPerPixel, displayDecimalPlaces).ToString() + "μm";
-                string parallelDistance = Math.Round(parallel * distPerPixel, displayDecimalPlaces).ToString() + "μm";
-                PointF labelPosition = new PointF
-                {
-                    X = (per.lines[i + 2].X + per.lines[i + 4].X) / 2,
-                    Y = (per.lines[i + 2].Y + per.lines[i + 4].Y) / 2
-                };
+                string perpendicularDistance = Math.Round(per.finalLength[i / 7] * distPerPixel, displayDecimalPlaces).ToString() + "μm";
                 SizeF size = g.MeasureString(perpendicularDistance, font);
-                SizeF size2 = g.MeasureString(parallelDistance, font);
                 RectangleF rectangle = new RectangleF(per.lines[i + 5], size);
-                RectangleF rectangle2 = new RectangleF(labelPosition, size2);
                 DrawCross(ref g, per.lines[i + 2]);
                 if ((per.lines[i + 5].X > per.lines[i + 3].X && per.lines[i + 5].X < per.lines[i + 4].X) ||
                     (per.lines[i + 5].X < per.lines[i + 3].X && per.lines[i + 5].X > per.lines[i + 4].X))
@@ -990,11 +980,10 @@ namespace Vision_Measurement
                     }
                 }
                 g.DrawLine(Pens.Yellow, per.lines[i], per.lines[i + 1]);
-                g.DrawLine(arrowHarrowT, per.lines[i + 2], per.lines[i + 4]);
+                g.DrawLine(dashedPen2, per.lines[i + 2], per.lines[i + 4]);
+                //g.DrawLine(dashedPen2, per.lines[i + 2], per.lines[i + 6]);
                 g.FillRectangle(sb_white, rectangle);
-                g.FillRectangle(sb_white, rectangle2);
                 g.DrawString(perpendicularDistance, new Font("Comic Sans MS", 8), sb_black, per.lines[i + 5]);
-                g.DrawString(parallelDistance, new Font("Comic Sans MS", 8), sb_black, labelPosition);
             }
 
             //Radius
@@ -1008,7 +997,7 @@ namespace Vision_Measurement
                 float axisLength = (float)(2 * rad.finalRadius[i / 3]);
                 double d = dim.GetDistance(rad.circles[i + 2], rad.circles[i], scale);
                 DrawCross(ref g, rad.circles[i]);
-                if(d > rad.finalRadius[i / 3])
+                if (d > rad.finalRadius[i / 3])
                 {
                     g.DrawLine(dashedarrowH, rad.circles[i + 1], rad.circles[i + 2]);
                     g.DrawLine(regular, rad.circles[i], rad.circles[i + 1]);
@@ -1214,18 +1203,9 @@ namespace Vision_Measurement
                         }
                         if (per.offsetCoord != PointF.Empty && per.extendedCoord == PointF.Empty)
                         {
-                            double parallel = dim.GetDistance(per.offsetCoord, per.perpendicularCoord2);
                             string perpendicularDistance = Math.Round(per.length * distPerPixel, displayDecimalPlaces).ToString() + "μm";
-                            string parallelDistance = Math.Round(parallel * distPerPixel, displayDecimalPlaces).ToString() + "μm";
-                            PointF labelPosition = new PointF
-                            {
-                                X = (per.offsetCoord.X + per.perpendicularCoord2.X) / 2,
-                                Y = (per.offsetCoord.Y + per.perpendicularCoord2.Y) / 2
-                            };
                             SizeF size = g.MeasureString(perpendicularDistance, font);
-                            SizeF size2 = g.MeasureString(parallelDistance, font);
                             RectangleF rectangle = new RectangleF(per.movingCoord2, size);
-                            RectangleF rectangle2 = new RectangleF(labelPosition, size2);
                             DrawCross(ref g, per.offsetCoord);
                             if ((per.movingCoord2.X > per.perpendicularCoord.X && per.movingCoord2.X < per.perpendicularCoord2.X) ||
                                 (per.movingCoord2.X < per.perpendicularCoord.X && per.movingCoord2.X > per.perpendicularCoord2.X))
@@ -1275,11 +1255,10 @@ namespace Vision_Measurement
                                 }
                             }
                             g.DrawLine(Pens.Yellow, per.epolateCoord1, per.epolateCoord2);
-                            g.DrawLine(arrowHarrowT, per.offsetCoord, per.perpendicularCoord2);
+                            g.DrawLine(dashedPen2, per.offsetCoord, per.perpendicularCoord2);
+                            //g.DrawLine(dashedPen2, per.offsetCoord, per.endCoord);
                             g.FillRectangle(sb_white, rectangle);
-                            g.FillRectangle(sb_white, rectangle2);
                             g.DrawString(perpendicularDistance, new Font("Comic Sans MS", 8), sb_black, per.movingCoord2);
-                            g.DrawString(parallelDistance, new Font("Comic Sans MS", 8), sb_black, labelPosition);
                         }
                         break;
                     case EMeasurement.RADIUS:
@@ -1449,7 +1428,7 @@ namespace Vision_Measurement
             pictureBox1.Invalidate();
         }
     }
-    
+
     public class Length
     {
         private const double thresholdAngleX = 5;
@@ -1490,11 +1469,11 @@ namespace Vision_Measurement
         public void RescaleAll(float scale)
         {
             lines.Clear();
-            for(int i = 0; i < rawLines.Count; i++)
+            for (int i = 0; i < rawLines.Count; i++)
             {
                 lines.Add(new PointF { X = 0, Y = 0 });
             }
-            for(int i = 0; i < rawLines.Count; i++)
+            for (int i = 0; i < rawLines.Count; i++)
             {
                 lines[i] = new PointF { X = (float)(rawLines[i].X * scale), Y = (float)(rawLines[i].Y * scale) };
             }
@@ -1510,7 +1489,7 @@ namespace Vision_Measurement
             }
             lengthCount--;
             removeCount++;
-            for (int i = index/5; i < finalLength.Length - 1; i++)
+            for (int i = index / 5; i < finalLength.Length - 1; i++)
             {
                 finalLength[i] = finalLength[i + 1];
             };
@@ -1711,12 +1690,14 @@ namespace Vision_Measurement
             perpendicularCoord2.Y = (float)(perpendicularCoord2.Y / scale);
             extendedCoord.X = (float)(extendedCoord.X / scale);
             extendedCoord.Y = (float)(extendedCoord.Y / scale);
+            endCoord.X = (float)(endCoord.X / scale);
+            endCoord.Y = (float)(endCoord.Y / scale);
         }
 
         public override void RemoveLine(int index)
         {
             int j = index;
-            for(int i = 0; i < 6; i++)
+            for (int i = 0; i < 7; i++)
             {
                 lines.RemoveAt(j);
                 rawLines.RemoveAt(j);
@@ -1797,7 +1778,7 @@ namespace Vision_Measurement
             {
                 circles.Add(new PointF { X = 0, Y = 0 });
             }
-            for (int i = 0; i < rawCircles.Count ; i++)
+            for (int i = 0; i < rawCircles.Count; i++)
             {
                 circles[i] = new PointF { X = (int)(rawCircles[i].X * scale), Y = (int)(rawCircles[i].Y * scale) };
             }
@@ -1825,12 +1806,12 @@ namespace Vision_Measurement
 
         public virtual float CircleEquation(PointF coord1, PointF coord2, PointF coord3, float threshold)
         {
-            double x1 = coord1.X ;
-            double y1 = coord1.Y ;
-            double x2 = coord2.X ;
-            double y2 = coord2.Y ;
-            double x3 = coord3.X ;
-            double y3 = coord3.Y ;
+            double x1 = coord1.X;
+            double y1 = coord1.Y;
+            double x2 = coord2.X;
+            double y2 = coord2.Y;
+            double x3 = coord3.X;
+            double y3 = coord3.Y;
 
             double x12 = x1 - x2;
             double x13 = x1 - x3;
@@ -1848,11 +1829,11 @@ namespace Vision_Measurement
             double c = -s1 - 2 * g * x1 - 2 * f * y1;
             double h = -g;
             double k = -f;
-            if ((int)h > Int32.MaxValue - threshold || (int)h < Int32.MinValue + threshold)
+            if ((int)h > int.MaxValue - threshold || (int)h < int.MinValue + threshold)
             {
                 return 0.0F;
             }
-            if ((int)k > Int32.MaxValue - threshold || (int)k < Int32.MinValue + threshold)
+            if ((int)k > int.MaxValue - threshold || (int)k < int.MinValue + threshold)
             {
                 return 0.0F;
             }
@@ -1873,7 +1854,7 @@ namespace Vision_Measurement
             }
             double theta = Math.Acos((Math.Pow(d1, 2) + Math.Pow(l, 2) - Math.Pow(d2, 2)) / (2 * d1 * l));
             double theta2 = Math.Acos((Math.Pow(d2, 2) + Math.Pow(l, 2) - Math.Pow(d1, 2)) / (2 * d2 * l));
-            if(theta >= (Math.PI / 2) || theta2 >= (Math.PI / 2))
+            if (theta >= (Math.PI / 2) || theta2 >= (Math.PI / 2))
             {
                 return false;
             }
@@ -1956,7 +1937,7 @@ namespace Vision_Measurement
         public int angleCount = 0;
         public double[] finalAngle = new double[Form1.measurementMaxCount];
 
-         public override void RevertToOriginalSize(float scale)
+        public override void RevertToOriginalSize(float scale)
         {
             center.X = (float)(center.X / scale);
             center.Y = (float)(center.Y / scale);
@@ -1996,11 +1977,11 @@ namespace Vision_Measurement
             double h = -g;
             double k = -f;
             double sr = h * h + k * k - c;
-            if ((int)h > Int32.MaxValue - threshold || (int)h < Int32.MinValue + threshold)
+            if ((int)h > int.MaxValue - threshold || (int)h < int.MinValue + threshold)
             {
                 return (float)Math.Sqrt(sr);
             }
-            if ((int)k > Int32.MaxValue - threshold || (int)k < Int32.MinValue + threshold)
+            if ((int)k > int.MaxValue - threshold || (int)k < int.MinValue + threshold)
             {
                 return (float)Math.Sqrt(sr);
             }
@@ -2014,8 +1995,11 @@ namespace Vision_Measurement
                 sweepAngle += 360;
             }
             midAngle = (sweepAngle) / 2 + startAngle;
-            midCoord = new PointF { X = (float)(Math.Round(center.X + (float)(tempRadius * Math.Cos(midAngle * Math.PI / 180)), 2)), 
-                                    Y = (float)(Math.Round(center.Y + (float)(tempRadius * Math.Sin(midAngle * Math.PI / 180)), 2))};
+            midCoord = new PointF
+            {
+                X = (float)(Math.Round(center.X + (float)(tempRadius * Math.Cos(midAngle * Math.PI / 180)), 2)),
+                Y = (float)(Math.Round(center.Y + (float)(tempRadius * Math.Sin(midAngle * Math.PI / 180)), 2))
+            };
             return (float)Math.Sqrt(sr);
         }
 
@@ -2089,28 +2073,28 @@ namespace Vision_Measurement
             double c = end.Y - m * end.X;
             if (c < 0)
             {
-                newStart = new PointF { X = (int)(-c / m), Y = 0 };
+                newStart = new PointF { X = (float)(-c / m), Y = 0 };
             }
             else if (c > yMax)
             {
-                newStart = new PointF { X = (int)((yMax - c) / m), Y = yMax };
+                newStart = new PointF { X = (float)((yMax - c) / m), Y = yMax };
             }
             else
             {
-                newStart = new PointF { X = 0, Y = (int)c };
+                newStart = new PointF { X = 0, Y = (float)c };
             }
             double d = m * xMax + c;
             if (d < 0)
             {
-                newEnd = new PointF { X = (int)(-c / m), Y = 0 };
+                newEnd = new PointF { X = (float)(-c / m), Y = 0 };
             }
             else if (d > yMax)
             {
-                newEnd = new PointF { X = (int)((yMax - c) / m), Y = yMax };
+                newEnd = new PointF { X = (float)((yMax - c) / m), Y = yMax };
             }
             else
             {
-                newEnd = new PointF { X = xMax, Y = (int)d };
+                newEnd = new PointF { X = xMax, Y = (float)d };
             }
             newStart.Y = Math.Abs(newStart.Y - yMax);
             newEnd.Y = Math.Abs(newEnd.Y - yMax);
@@ -2133,8 +2117,8 @@ namespace Vision_Measurement
             double m = (double)(end.Y - start.Y) / (double)(end.X - start.X);
             double new_m = -(1 / m);
             double c = (double)end.Y - (new_m * (double)end.X);
-            double d = ((double)(end.Y + threshold) - c)/new_m;
-            newStart = new PointF { X = (float)Math.Round(d, 2), Y = end.Y + threshold};
+            double d = ((double)(end.Y + threshold) - c) / new_m;
+            newStart = new PointF { X = (float)d , Y = end.Y + threshold };
             return newStart;
         }
 
@@ -2146,7 +2130,7 @@ namespace Vision_Measurement
             double theta = Math.Acos((Math.Pow(d1, 2) + Math.Pow(l, 2) - Math.Pow(d2, 2)) / (2 * d1 * l));
             double d = d1 * Math.Sin(theta);
             double s = d1 * Math.Cos(theta);
-            return (new PointF { X = (float)(Math.Round(start.X + (s / l) * (end.X - start.X), 2)), Y = (float)(Math.Round(start.Y + (s / l) * (end.Y - start.Y), 2)) }, d);
+            return (new PointF { X = (float)(start.X + (s / l) * (end.X - start.X)), Y = (float)(start.Y + (s / l) * (end.Y - start.Y)) }, d);
         }
 
         public double GetDistance(PointF start, PointF end, float scale = 1)
