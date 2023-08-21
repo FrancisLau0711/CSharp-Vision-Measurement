@@ -30,8 +30,9 @@ namespace Vision_Measurement
         private float scale = 1.0F;
         private float last_scale = 0.0F;
         private bool isGrayScale = false;
+        private bool isMaximized = false;
         private static readonly Color mainColor = Color.Cyan;
-        private static readonly Color subColor = Color.Lime;
+        private static readonly Color subColor = Color.Yellow;
         private Image rawImage;
         readonly Pen regular = new Pen(mainColor);
         readonly Pen arrowHarrowT = new Pen(mainColor);
@@ -54,7 +55,6 @@ namespace Vision_Measurement
             InitializeComponent();
             InitializeControl();
             InitializePen();
-            Text = "Vision Measurement";
             WindowState = FormWindowState.Maximized;
         }
 
@@ -76,6 +76,7 @@ namespace Vision_Measurement
             comboBox1.DataSource = Enum.GetValues(typeof(EMeasurement));
             comboBox1.ForeColor = Color.White;
             comboBox1.DropDownStyle = ComboBoxStyle.DropDownList;
+            toolStrip2.Renderer = new RemoveBorder();
         }
 
         private void InitializePen()
@@ -168,13 +169,13 @@ namespace Vision_Measurement
             if (isGrayScale)
             {
                 Bitmap gray_bmp = MakeGrayscale(bmp);
-                button3.Text = "BGR   ";
+                button3.Text = "BGR";
                 button3.Image = Image.FromFile("C:\\Users\\francis\\source\\repos\\Vision Measurement\\Icons\\BGR Icon.png");
                 pictureBox1.Image = gray_bmp;
             }
             else
             {
-                button3.Text = "GrayScale  ";
+                button3.Text = "GrayScale";
                 button3.Image = Image.FromFile("C:\\Users\\francis\\source\\repos\\Vision Measurement\\Icons\\Grayscale Icon.png");
                 pictureBox1.Image = bmp;
             }
@@ -191,7 +192,7 @@ namespace Vision_Measurement
             {
                 scale = 2.0F;
             }
-            scaleText.Text = "   " + ((int)Math.Round(scale * 100)).ToString() + "%";
+            scaleText.Text = "    " + ((int)Math.Round(scale * 100)).ToString() + "%";
             Bitmap bmp = ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
             pictureBox1.Image = bmp;
             if (last_scale != scale)
@@ -218,7 +219,7 @@ namespace Vision_Measurement
             {
                 scale = 0.1F;
             }
-            scaleText.Text = "   " + ((int)Math.Round(scale * 100)).ToString() + "%";
+            scaleText.Text = "    " + ((int)Math.Round(scale * 100)).ToString() + "%";
             Bitmap bmp = ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
             pictureBox1.Image = bmp;
             if (last_scale != scale)
@@ -258,6 +259,10 @@ namespace Vision_Measurement
             return destImage;
         }
 
+        private void FormClose(object sender, EventArgs e)
+        {
+            Application.Exit();
+        }
         private void PictureBox1MouseClick(object sender, MouseEventArgs e)
         {
             switch (e.Button)
@@ -2167,6 +2172,18 @@ namespace Vision_Measurement
             double x_diff = (double)(end.X / scale) - (double)(start.X / scale);
             double y_diff = (double)(end.Y / scale) - (double)(start.Y / scale);
             return Math.Sqrt(Math.Pow(x_diff, 2) + Math.Pow(y_diff, 2));
+        }
+    }
+
+    public class RemoveBorder : ToolStripSystemRenderer
+    {
+        public RemoveBorder()
+        {
+        }
+
+        protected override void OnRenderToolStripBorder(ToolStripRenderEventArgs e)
+        {
+            //base.OnRenderToolStripBorder(e);
         }
     }
 }
