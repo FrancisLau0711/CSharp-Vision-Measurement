@@ -30,7 +30,10 @@ namespace Vision_Measurement
         private float scale = 1.0F;
         private float last_scale = 0.0F;
         private bool isGrayScale = false;
-        private bool isMaximized = false;
+        private bool isRemove = false;
+        private bool isDrag = false;
+        private bool dragging = false;
+        private Point mouseLocation = new Point(0, 0);
         private static readonly Color mainColor = Color.Cyan;
         private static readonly Color subColor = Color.Yellow;
         private Image rawImage;
@@ -76,6 +79,7 @@ namespace Vision_Measurement
             comboBox1.DataSource = Enum.GetValues(typeof(EMeasurement));
             comboBox1.ForeColor = Color.White;
             comboBox1.DropDownStyle = ComboBoxStyle.DropDownList;
+            toolStrip1.Renderer = new RemoveBorder();
             toolStrip2.Renderer = new RemoveBorder();
         }
 
@@ -170,13 +174,13 @@ namespace Vision_Measurement
             {
                 Bitmap gray_bmp = MakeGrayscale(bmp);
                 button3.Text = "BGR";
-                button3.Image = Image.FromFile("Vision Measurement\\Icons\\BGR Icon.png");
+                button3.Image = Image.FromFile("C:\\Users\\francis\\source\\repos\\Vision Measurement\\Icons\\BGR Icon.png");
                 pictureBox1.Image = gray_bmp;
             }
             else
             {
                 button3.Text = "GrayScale";
-                button3.Image = Image.FromFile("Vision Measurement\\Icons\\Grayscale Icon.png");
+                button3.Image = Image.FromFile("C:\\Users\\francis\\source\\repos\\Vision Measurement\\Icons\\Grayscale Icon.png");
                 pictureBox1.Image = bmp;
             }
         }
@@ -192,7 +196,7 @@ namespace Vision_Measurement
             {
                 scale = 2.0F;
             }
-            scaleText.Text = "    " + ((int)Math.Round(scale * 100)).ToString() + "%";
+            scaleText.Text = "     " + ((int)Math.Round(scale * 100)).ToString() + "%";
             Bitmap bmp = ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
             pictureBox1.Image = bmp;
             if (last_scale != scale)
@@ -219,7 +223,7 @@ namespace Vision_Measurement
             {
                 scale = 0.1F;
             }
-            scaleText.Text = "    " + ((int)Math.Round(scale * 100)).ToString() + "%";
+            scaleText.Text = "     " + ((int)Math.Round(scale * 100)).ToString() + "%";
             Bitmap bmp = ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
             pictureBox1.Image = bmp;
             if (last_scale != scale)
@@ -235,6 +239,30 @@ namespace Vision_Measurement
             pictureBox1.Invalidate();
         }
 
+        private void ScaleToOriginal(object sender, EventArgs e)
+        {
+            if (rawImage == null)
+            {
+                return;
+            }
+            scale = 1.0F;
+            scaleText.Text = "    " + ((int)Math.Round(scale * 100)).ToString() + "%";
+            Bitmap bmp = ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
+            pictureBox1.Image = bmp;
+            pictureBox1.Left = 0;
+            pictureBox1.Top = 0;
+            if (last_scale != scale)
+            {
+                len.RescaleAll(scale);
+                par.RescaleAll(scale);
+                per.RescaleAll(scale);
+                rad.RescaleAll(scale);
+                dia.RescaleAll(scale);
+                arc.RescaleAll(scale);
+            }
+            last_scale = scale;
+            pictureBox1.Invalidate();
+        }
         private Bitmap ResizeImage(Image image, int width, int height)
         {
             Rectangle destRect = new Rectangle(0, 0, width, height);
@@ -259,10 +287,47 @@ namespace Vision_Measurement
             return destImage;
         }
 
-        private void FormClose(object sender, EventArgs e)
+        private void RemoveGraphics(object sender, EventArgs e)
         {
-            Application.Exit();
+            isRemove = !isRemove;
+            if(isRemove)
+            {
+                isDrag = false;
+                button5.BackColor = Color.Green;
+                button6.BackColor = Color.FromArgb(24, 30, 54);
+            }
+            else
+            {
+                button5.BackColor = Color.FromArgb(24, 30, 54);
+            }
         }
+        private void DragImage(object sender, EventArgs e)
+        {
+            isDrag = !isDrag;
+            if (isDrag)
+            {
+                isRemove = false;
+                button6.BackColor = Color.Green;
+                button5.BackColor = Color.FromArgb(24, 30, 54);
+            }
+            else
+            {
+                button6.BackColor = Color.FromArgb(24, 30, 54);
+            }
+        }
+        private void PictureBox1MouseDown(object sender, MouseEventArgs e)
+        {
+            if (isDrag && e.Button == MouseButtons.Right)
+            {
+                dragging = true;
+                mouseLocation = new Point{ X = e.X, Y = e.Y };
+            }
+        }
+        private void PictureBox1MouseUp(object sender, MouseEventArgs e)
+        {
+            dragging = false;
+        }
+
         private void PictureBox1MouseClick(object sender, MouseEventArgs e)
         {
             switch (e.Button)
@@ -540,7 +605,8 @@ namespace Vision_Measurement
                        ((per.extendedCoord != Point.Empty && per.sequence == 3) || per.sequence == 0) &&
                         rad.sequence < 1 &&
                         dia.sequence < 1 &&
-                        arc.sequence < 1)
+                        arc.sequence < 1 &&
+                        isRemove == true)
                     {
                         len.isRemoveLine = true;
                         switch (len.removeSequence)
@@ -649,7 +715,13 @@ namespace Vision_Measurement
 
         private void PictureBox1MouseMove(object sender, MouseEventArgs e)
         {
-            if (len.isRemoveLine)
+            Control c = sender as Control;
+            if (dragging && c != null)
+            {
+                c.Top = e.Y + c.Top - mouseLocation.Y;
+                c.Left = e.X + c.Left - mouseLocation.X;
+            }
+            else if (len.isRemoveLine)
             {
                 if (len.startCoord != PointF.Empty && len.endCoord == PointF.Empty)
                 {
@@ -1451,7 +1523,7 @@ namespace Vision_Measurement
             g.DrawLine(regular, point.X - crossScale, point.Y + crossScale, point.X + crossScale, point.Y - crossScale);
         }
 
-        private void Clear_All_Click(object sender, EventArgs e)
+        private void ClearAllClick(object sender, EventArgs e)
         {
             len.LengthClear();
             par.ParallelClear();
