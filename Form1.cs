@@ -321,11 +321,13 @@ namespace Vision_Measurement
             {
                 dragging = true;
                 mouseLocation = new Point{ X = e.X, Y = e.Y };
+                Cursor = Cursors.SizeAll;
             }
         }
         private void PictureBox1MouseUp(object sender, MouseEventArgs e)
         {
             dragging = false;
+            Cursor = Cursors.Cross;
         }
 
         private void PictureBox1MouseClick(object sender, MouseEventArgs e)
@@ -701,6 +703,10 @@ namespace Vision_Measurement
                     }
                     else
                     {
+                        if(isDrag == true)
+                        {
+                            return;
+                        }
                         len.StopMeasurement();
                         par.StopMeasurement();
                         per.StopMeasurement();
@@ -715,14 +721,14 @@ namespace Vision_Measurement
 
         private void PictureBox1MouseMove(object sender, MouseEventArgs e)
         {
-            Control c = sender as Control;
-            if (dragging && c != null)
+            if (dragging && sender is Control c)
             {
                 c.Top = e.Y + c.Top - mouseLocation.Y;
                 c.Left = e.X + c.Left - mouseLocation.X;
             }
             else if (len.isRemoveLine)
             {
+                Cursor = Cursors.Cross;
                 if (len.startCoord != PointF.Empty && len.endCoord == PointF.Empty)
                 {
                     len.movingCoord = e.Location;
@@ -738,6 +744,7 @@ namespace Vision_Measurement
             }
             else
             {
+                Cursor = Cursors.Cross;
                 switch (Measurement)
                 {
                     case EMeasurement.Length:
@@ -1532,6 +1539,11 @@ namespace Vision_Measurement
             dia.DiameterClear();
             arc.ArcClear();
             pictureBox1.Invalidate();
+        }
+
+        private void CursorDefault(object sender, MouseEventArgs e)
+        {
+            Cursor = Cursors.Default;
         }
     }
 
