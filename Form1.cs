@@ -11,17 +11,17 @@ namespace Vision_Measurement
 {
     enum EMeasurement
     {
-        LENGTH,
-        PARALLEL,
-        PERPENDICULAR,
-        RADIUS,
-        DIAMETER,
-        ARC
+        Length,
+        Parallel,
+        Perpendicular,
+        Radius,
+        Diameter,
+        Arc
     }
 
     public partial class Form1 : Form
     {
-        private EMeasurement Measurement => (EMeasurement)tscbxMode.ComboBox.SelectedItem;
+        private EMeasurement Measurement => (EMeasurement)comboBox1.SelectedItem;
         public const int measurementMaxCount = short.MaxValue;
         public const int displayDecimalPlaces = 3;
         private readonly double distPerPixel = 3.45;
@@ -64,7 +64,6 @@ namespace Vision_Measurement
             InitializeControl();
             InitializePen();
             Text = "Vision Measurement";
-            WindowState = FormWindowState.Maximized;
             rawImage = image.ToBitmap();
             distPerPixel = ddp;
         }
@@ -74,11 +73,9 @@ namespace Vision_Measurement
             panel1.Size = new Size(1260, 620);
             pictureBox1.SizeMode = PictureBoxSizeMode.AutoSize;
             pictureBox1.SendToBack();
-            tscbxMode.ComboBox.DataSource = Enum.GetValues(typeof(EMeasurement));
-            tscbxMode.ComboBox.Font = font;
-            tscbxMode.ForeColor = Color.Purple;
-            tscbxMode.DropDownStyle = ComboBoxStyle.DropDownList;
-            tscbxMode.Width = 150;
+            comboBox1.DataSource = Enum.GetValues(typeof(EMeasurement));
+            comboBox1.ForeColor = Color.White;
+            comboBox1.DropDownStyle = ComboBoxStyle.DropDownList;
         }
 
         private void InitializePen()
@@ -171,24 +168,30 @@ namespace Vision_Measurement
             if (isGrayScale)
             {
                 Bitmap gray_bmp = MakeGrayscale(bmp);
-                toolStripButton2.Text = "BGR";
+                button3.Text = "BGR   ";
+                button3.Image = Image.FromFile("C:\\Users\\francis\\source\\repos\\Vision Measurement\\BGR Icon (Resized).png");
                 pictureBox1.Image = gray_bmp;
             }
             else
             {
-                toolStripButton2.Text = "GrayScale";
+                button3.Text = "GrayScale  ";
+                button3.Image = Image.FromFile("C:\\Users\\francis\\source\\repos\\Vision Measurement\\Grayscale Icon (Resized).png");
                 pictureBox1.Image = bmp;
             }
         }
 
         private void ZoomIn(object sender, EventArgs e)
         {
+            if (rawImage == null)
+            {
+                return;
+            }
             scale += 0.1F;
             if (scale >= 2.0F)
             {
                 scale = 2.0F;
             }
-            scaleText.Text = ((int)Math.Round(scale * 100)).ToString();
+            scaleText.Text = "   " + ((int)Math.Round(scale * 100)).ToString() + "%";
             Bitmap bmp = ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
             pictureBox1.Image = bmp;
             if (last_scale != scale)
@@ -206,12 +209,16 @@ namespace Vision_Measurement
 
         private void ZoomOut(object sender, EventArgs e)
         {
+            if (rawImage == null)
+            {
+                return;
+            }
             scale -= 0.1F;
             if (scale <= 0.1F)
             {
                 scale = 0.1F;
             }
-            scaleText.Text = ((int)Math.Round(scale * 100)).ToString();
+            scaleText.Text = "   " + ((int)Math.Round(scale * 100)).ToString() + "%";
             Bitmap bmp = ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
             pictureBox1.Image = bmp;
             if (last_scale != scale)
@@ -258,7 +265,7 @@ namespace Vision_Measurement
                 case MouseButtons.Left:
                     switch (Measurement)
                     {
-                        case EMeasurement.LENGTH:
+                        case EMeasurement.Length:
                             par.sequence = 0;
                             per.sequence = 0;
                             rad.sequence = 0;
@@ -299,7 +306,7 @@ namespace Vision_Measurement
                                 }
                             }
                             break;
-                        case EMeasurement.PARALLEL:
+                        case EMeasurement.Parallel:
                             len.sequence = 0;
                             per.sequence = 0;
                             rad.sequence = 0;
@@ -344,7 +351,7 @@ namespace Vision_Measurement
                                 }
                             }
                             break;
-                        case EMeasurement.PERPENDICULAR:
+                        case EMeasurement.Perpendicular:
                             len.sequence = 0;
                             par.sequence = 0;
                             rad.sequence = 0;
@@ -387,7 +394,7 @@ namespace Vision_Measurement
                                 }
                             }
                             break;
-                        case EMeasurement.RADIUS:
+                        case EMeasurement.Radius:
                             len.sequence = 0;
                             par.sequence = 0;
                             per.sequence = 0;
@@ -433,7 +440,7 @@ namespace Vision_Measurement
                                 }
                             }
                             break;
-                        case EMeasurement.DIAMETER:
+                        case EMeasurement.Diameter:
                             len.sequence = 0;
                             par.sequence = 0;
                             per.sequence = 0;
@@ -479,7 +486,7 @@ namespace Vision_Measurement
                                 }
                             }
                             break;
-                        case EMeasurement.ARC:
+                        case EMeasurement.Arc:
                             len.sequence = 0;
                             par.sequence = 0;
                             per.sequence = 0;
@@ -524,8 +531,8 @@ namespace Vision_Measurement
                     break;
                 case MouseButtons.Right:
                     if (len.sequence < 1 &&
-                       (par.sequence == 3 || par.sequence == 0) &&
-                       (per.sequence == 3 || per.sequence == 0) &&
+                       ((par.extendedCoord != Point.Empty && par.sequence == 3) || par.sequence == 0) &&
+                       ((per.extendedCoord != Point.Empty && per.sequence == 3) || per.sequence == 0) &&
                         rad.sequence < 1 &&
                         dia.sequence < 1 &&
                         arc.sequence < 1)
@@ -656,7 +663,7 @@ namespace Vision_Measurement
             {
                 switch (Measurement)
                 {
-                    case EMeasurement.LENGTH:
+                    case EMeasurement.Length:
                         if (len.startCoord != PointF.Empty && len.endCoord == PointF.Empty)
                         {
                             len.CheckAngle();
@@ -694,7 +701,7 @@ namespace Vision_Measurement
                         }
                         break;
 
-                    case EMeasurement.PARALLEL:
+                    case EMeasurement.Parallel:
                         if (par.startCoord != PointF.Empty && par.endCoord == PointF.Empty)
                         {
                             par.CheckAngle();
@@ -731,7 +738,7 @@ namespace Vision_Measurement
                         }
                         break;
 
-                    case EMeasurement.PERPENDICULAR:
+                    case EMeasurement.Perpendicular:
                         if (per.startCoord != PointF.Empty && per.endCoord == PointF.Empty)
                         {
                             per.CheckAngle();
@@ -770,7 +777,7 @@ namespace Vision_Measurement
                             pictureBox1.Invalidate();
                         }
                         break;
-                    case EMeasurement.RADIUS:
+                    case EMeasurement.Radius:
                         if (rad.startCoord != PointF.Empty)
                         {
                             if (rad.coord2 != PointF.Empty && rad.endCoord == PointF.Empty)
@@ -792,7 +799,7 @@ namespace Vision_Measurement
                             pictureBox1.Invalidate();
                         }
                         break;
-                    case EMeasurement.DIAMETER:
+                    case EMeasurement.Diameter:
 
                         if (dia.startCoord != PointF.Empty)
                         {
@@ -816,7 +823,7 @@ namespace Vision_Measurement
                         }
                         break;
 
-                    case EMeasurement.ARC:
+                    case EMeasurement.Arc:
                         if (arc.startCoord != PointF.Empty)
                         {
                             if (arc.coord2 != PointF.Empty && arc.endCoord == PointF.Empty)
@@ -928,9 +935,18 @@ namespace Vision_Measurement
             //Perpendicular
             for (int i = 0; i < per.lines.Count; i += 7)
             {
+                double parallel = dim.GetDistance(per.lines[i + 2], per.lines[i + 4]);
                 string perpendicularDistance = Math.Round(per.finalLength[i / 7] * distPerPixel, displayDecimalPlaces).ToString() + "μm";
+                string parallelDistance = Math.Round(parallel * distPerPixel, displayDecimalPlaces).ToString() + "μm";
                 SizeF size = g.MeasureString(perpendicularDistance, font);
+                SizeF size2 = g.MeasureString(parallelDistance, font);
+                PointF labelPosition = new PointF
+                {
+                    X = (per.lines[i + 2].X + per.lines[i + 4].X) / 2,
+                    Y = (per.lines[i + 2].Y + per.lines[i + 4].Y) / 2,
+                };
                 RectangleF rectangle = new RectangleF(per.lines[i + 5], size);
+                RectangleF rectangle2 = new RectangleF(labelPosition, size2);
                 DrawCross(ref g, per.lines[i + 2]);
                 if ((per.lines[i + 5].X > per.lines[i + 3].X && per.lines[i + 5].X < per.lines[i + 4].X) ||
                     (per.lines[i + 5].X < per.lines[i + 3].X && per.lines[i + 5].X > per.lines[i + 4].X))
@@ -981,9 +997,11 @@ namespace Vision_Measurement
                 }
                 g.DrawLine(Pens.Yellow, per.lines[i], per.lines[i + 1]);
                 g.DrawLine(dashedPen2, per.lines[i + 2], per.lines[i + 4]);
-                //g.DrawLine(dashedPen2, per.lines[i + 2], per.lines[i + 6]);
+                g.DrawLine(dashedPen2, per.lines[i + 2], per.lines[i + 6]);
                 g.FillRectangle(sb_white, rectangle);
+                g.FillRectangle(sb_white, rectangle2);
                 g.DrawString(perpendicularDistance, new Font("Comic Sans MS", 8), sb_black, per.lines[i + 5]);
+                g.DrawString(parallelDistance, new Font("Comic Sans MS", 8), sb_black, labelPosition);
             }
 
             //Radius
@@ -1075,7 +1093,7 @@ namespace Vision_Measurement
             {
                 switch (Measurement)
                 {
-                    case EMeasurement.LENGTH:
+                    case EMeasurement.Length:
                         if (len.startCoord != PointF.Empty)
                         {
                             if (len.endCoord == PointF.Empty)
@@ -1127,7 +1145,7 @@ namespace Vision_Measurement
                             g.DrawString(length, new Font("Comic Sans MS", 8), sb_black, len.extendedCoord);
                         }
                         break;
-                    case EMeasurement.PARALLEL:
+                    case EMeasurement.Parallel:
                         if (par.movingCoord != PointF.Empty && par.movingCoord2 == PointF.Empty)
                         {
                             DrawCross(ref g, par.startCoord);
@@ -1179,7 +1197,7 @@ namespace Vision_Measurement
                             g.DrawString(perpendicularDistance, new Font("Comic Sans MS", 8), sb_black, par.movingCoord2);
                         }
                         break;
-                    case EMeasurement.PERPENDICULAR:
+                    case EMeasurement.Perpendicular:
                         if (per.movingCoord != PointF.Empty && per.movingCoord2 == PointF.Empty)
                         {
                             DrawCross(ref g, per.startCoord);
@@ -1203,9 +1221,18 @@ namespace Vision_Measurement
                         }
                         if (per.offsetCoord != PointF.Empty && per.extendedCoord == PointF.Empty)
                         {
+                            double parallel = dim.GetDistance(per.offsetCoord, per.perpendicularCoord2);
                             string perpendicularDistance = Math.Round(per.length * distPerPixel, displayDecimalPlaces).ToString() + "μm";
+                            string parallelDistance = Math.Round(parallel * distPerPixel, displayDecimalPlaces).ToString() + "μm";
                             SizeF size = g.MeasureString(perpendicularDistance, font);
+                            SizeF size2 = g.MeasureString(parallelDistance, font);
+                            PointF labelPosition = new PointF()
+                            {
+                                X = (per.offsetCoord.X + per.perpendicularCoord2.X) / 2,
+                                Y = (per.offsetCoord.Y + per.perpendicularCoord2.Y) / 2
+                            };
                             RectangleF rectangle = new RectangleF(per.movingCoord2, size);
+                            RectangleF rectangle2 = new RectangleF(labelPosition, size2);
                             DrawCross(ref g, per.offsetCoord);
                             if ((per.movingCoord2.X > per.perpendicularCoord.X && per.movingCoord2.X < per.perpendicularCoord2.X) ||
                                 (per.movingCoord2.X < per.perpendicularCoord.X && per.movingCoord2.X > per.perpendicularCoord2.X))
@@ -1256,12 +1283,14 @@ namespace Vision_Measurement
                             }
                             g.DrawLine(Pens.Yellow, per.epolateCoord1, per.epolateCoord2);
                             g.DrawLine(dashedPen2, per.offsetCoord, per.perpendicularCoord2);
-                            //g.DrawLine(dashedPen2, per.offsetCoord, per.endCoord);
+                            g.DrawLine(dashedPen2, per.offsetCoord, per.endCoord);
                             g.FillRectangle(sb_white, rectangle);
+                            g.FillRectangle(sb_white, rectangle2);
                             g.DrawString(perpendicularDistance, new Font("Comic Sans MS", 8), sb_black, per.movingCoord2);
+                            g.DrawString(parallelDistance, new Font("Comic Sans MS", 8), sb_black, labelPosition);
                         }
                         break;
-                    case EMeasurement.RADIUS:
+                    case EMeasurement.Radius:
                         if (rad.startCoord != PointF.Empty && rad.coord2 == PointF.Empty)
                         {
                             DrawCross(ref g, rad.startCoord);
@@ -1314,7 +1343,7 @@ namespace Vision_Measurement
                             }
                         }
                         break;
-                    case EMeasurement.DIAMETER:
+                    case EMeasurement.Diameter:
                         if (dia.startCoord != PointF.Empty && dia.coord2 == PointF.Empty)
                         {
                             DrawCross(ref g, dia.startCoord);
@@ -1371,7 +1400,7 @@ namespace Vision_Measurement
                             }
                         }
                         break;
-                    case EMeasurement.ARC:
+                    case EMeasurement.Arc:
                         if (arc.startCoord != PointF.Empty && arc.coord2 == PointF.Empty)
                         {
                             DrawCross(ref g, arc.startCoord);
