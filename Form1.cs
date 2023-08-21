@@ -77,10 +77,8 @@ namespace Vision_Measurement
             pictureBox1.SizeMode = PictureBoxSizeMode.AutoSize;
             pictureBox1.SendToBack();
             comboBox1.DataSource = Enum.GetValues(typeof(EMeasurement));
-            comboBox1.ForeColor = Color.White;
             comboBox1.DropDownStyle = ComboBoxStyle.DropDownList;
             toolStrip1.Renderer = new RemoveBorder();
-            toolStrip2.Renderer = new RemoveBorder();
         }
 
         private void InitializePen()
