@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.IO;
+using System.Reflection;
 using System.Windows.Forms;
 using Emgu.CV;
 using Emgu.CV.Structure;
@@ -174,17 +176,20 @@ namespace Vision_Measurement
             }
             isGrayScale = !isGrayScale;
             Bitmap bmp = ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
+            string workingDirectory = Directory.GetCurrentDirectory();
             if (isGrayScale)
             {
                 Bitmap gray_bmp = MakeGrayscale(bmp);
                 button3.Text = "BGR";
-                button3.Image = Image.FromFile("C:\\Users\\francis\\source\\repos\\Vision Measurement\\Icons\\BGR Icon.png");
+                string path = Directory.GetParent(workingDirectory).Parent.FullName + @"\Icons\BGR Icon.png";
+                button3.Image = Image.FromFile(path);
                 pictureBox1.Image = gray_bmp;
             }
             else
             {
                 button3.Text = "GrayScale";
-                button3.Image = Image.FromFile("C:\\Users\\francis\\source\\repos\\Vision Measurement\\Icons\\Grayscale Icon.png");
+                string path = Directory.GetParent(workingDirectory).Parent.FullName + @"\Icons\Grayscale Icon.png";
+                button3.Image = Image.FromFile(path);
                 pictureBox1.Image = bmp;
             }
         }
