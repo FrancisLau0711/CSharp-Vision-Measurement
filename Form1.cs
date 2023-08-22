@@ -114,6 +114,10 @@ namespace Vision_Measurement
 
         private void SaveImage(object sender, EventArgs e)
         {
+            if(rawImage == null)
+            {
+                return;
+            }
             Bitmap image = new Bitmap(pictureBox1.ClientSize.Width, pictureBox1.ClientSize.Height);
             pictureBox1.DrawToBitmap(image, pictureBox1.ClientRectangle);
             pictureBox1.Enabled = false;
