@@ -8,5 +8,4 @@ It includes additional features like converting image between bgr and grayscale,
 # How to Use it
 1. Create a Windows Form Apps(.Net Framework) project using Visual Studio.
 2. Clone the repository from Git Changes Tab.
-3. Replace the file path at line 175 to your desired one.
-4. Run the program and try it out!
+3. Run the program and try it out!
