@@ -1543,6 +1543,34 @@ namespace Vision_Measurement
         {
             Cursor = Cursors.Default;
         }
+
+        private void PictureBox1DoubleClick(object sender, MouseEventArgs e)
+        {
+            if(e.Button == MouseButtons.Right && isDrag)
+            {
+                if (rawImage == null)
+                {
+                    return;
+                }
+                scale = 1.0F;
+                scaleText.Text = "     " + ((int)Math.Round(scale * 100)).ToString() + "%";
+                Bitmap bmp = ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
+                pictureBox1.Image = bmp;
+                pictureBox1.Left = 0;
+                pictureBox1.Top = 0;
+                if (last_scale != scale)
+                {
+                    len.RescaleAll(scale);
+                    par.RescaleAll(scale);
+                    per.RescaleAll(scale);
+                    rad.RescaleAll(scale);
+                    dia.RescaleAll(scale);
+                    arc.RescaleAll(scale);
+                }
+                last_scale = scale;
+                pictureBox1.Invalidate();
+            }
+        }
     }
 
     public class Length
