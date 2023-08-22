@@ -697,9 +697,10 @@ namespace Vision_Measurement
                                 j = 0;
                                 for (int i = 0; i < (arc.circles.Count + j); i += 4)
                                 {
-                                    bool isLineIntersectCircle1 = len.CheckIntercept(len.startCoord, len.endCoord, arc.circles[i - j], arc.circles[i - j + 3]);
-                                    bool isLineIntersectCircle2 = len.CheckIntercept(len.startCoord, len.endCoord, arc.circles[i - j], arc.circles[i - j + 1]);
-                                    if (isLineIntersectCircle1 || isLineIntersectCircle2)
+                                    bool isLineIntersectCircle1 = len.CheckIntercept(len.startCoord, len.endCoord, arc.circles[i - j], arc.circles[i - j + 1]);
+                                    bool isLineIntersectCircle2 = len.CheckIntercept(len.startCoord, len.endCoord, arc.circles[i - j], arc.circles[i - j + 2]);
+                                    bool isLineIntersectCircle3 = len.CheckIntercept(len.startCoord, len.endCoord, arc.circles[i - j], arc.circles[i - j + 3]);
+                                    if (isLineIntersectCircle1 || isLineIntersectCircle2 || isLineIntersectCircle3)
                                     {
                                         arc.RemoveCircle(i - j);
                                         j += 4;

@@ -125,7 +125,7 @@
             this.button6.ForeColor = System.Drawing.Color.LightGray;
             this.button6.Image = ((System.Drawing.Image)(resources.GetObject("button6.Image")));
             this.button6.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.button6.Location = new System.Drawing.Point(0, 686);
+            this.button6.Location = new System.Drawing.Point(0, 683);
             this.button6.Name = "button6";
             this.button6.Size = new System.Drawing.Size(186, 68);
             this.button6.TabIndex = 16;
@@ -148,7 +148,7 @@
             this.button5.ForeColor = System.Drawing.Color.LightGray;
             this.button5.Image = ((System.Drawing.Image)(resources.GetObject("button5.Image")));
             this.button5.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.button5.Location = new System.Drawing.Point(0, 618);
+            this.button5.Location = new System.Drawing.Point(0, 615);
             this.button5.Name = "button5";
             this.button5.Size = new System.Drawing.Size(186, 68);
             this.button5.TabIndex = 15;
@@ -165,7 +165,7 @@
             this.toolStrip3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(30)))), ((int)(((byte)(54)))));
             this.toolStrip3.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.toolStrip3.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.VerticalStackWithOverflow;
-            this.toolStrip3.Location = new System.Drawing.Point(0, 608);
+            this.toolStrip3.Location = new System.Drawing.Point(0, 605);
             this.toolStrip3.Name = "toolStrip3";
             this.toolStrip3.Size = new System.Drawing.Size(186, 10);
             this.toolStrip3.TabIndex = 18;
@@ -178,7 +178,7 @@
             this.toolStrip2.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.toolStripLabel1});
             this.toolStrip2.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.VerticalStackWithOverflow;
-            this.toolStrip2.Location = new System.Drawing.Point(0, 559);
+            this.toolStrip2.Location = new System.Drawing.Point(0, 556);
             this.toolStrip2.Name = "toolStrip2";
             this.toolStrip2.Size = new System.Drawing.Size(186, 49);
             this.toolStrip2.TabIndex = 17;
@@ -196,7 +196,7 @@
             // label3
             // 
             this.label3.Dock = System.Windows.Forms.DockStyle.Top;
-            this.label3.Location = new System.Drawing.Point(0, 409);
+            this.label3.Location = new System.Drawing.Point(0, 406);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(186, 150);
             this.label3.TabIndex = 19;
@@ -210,7 +210,7 @@
             this.comboBox1.Font = new System.Drawing.Font("Comic Sans MS", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.comboBox1.ForeColor = System.Drawing.Color.LightGray;
             this.comboBox1.FormattingEnabled = true;
-            this.comboBox1.Location = new System.Drawing.Point(0, 376);
+            this.comboBox1.Location = new System.Drawing.Point(0, 373);
             this.comboBox1.Name = "comboBox1";
             this.comboBox1.Size = new System.Drawing.Size(186, 33);
             this.comboBox1.TabIndex = 10;
@@ -386,7 +386,7 @@
             this.toolStrip4.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(30)))), ((int)(((byte)(54)))));
             this.toolStrip4.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.toolStrip4.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.VerticalStackWithOverflow;
-            this.toolStrip4.Location = new System.Drawing.Point(0, 356);
+            this.toolStrip4.Location = new System.Drawing.Point(0, 353);
             this.toolStrip4.Name = "toolStrip4";
             this.toolStrip4.Size = new System.Drawing.Size(186, 10);
             this.toolStrip4.TabIndex = 27;
@@ -401,25 +401,26 @@
             this.toolStrip5.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.VerticalStackWithOverflow;
             this.toolStrip5.Location = new System.Drawing.Point(0, 307);
             this.toolStrip5.Name = "toolStrip5";
-            this.toolStrip5.Size = new System.Drawing.Size(186, 49);
+            this.toolStrip5.Size = new System.Drawing.Size(186, 46);
             this.toolStrip5.TabIndex = 26;
             this.toolStrip5.Text = "toolStrip5";
             // 
             // toolStripLabel2
             // 
-            this.toolStripLabel2.AutoSize = false;
-            this.toolStripLabel2.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.toolStripLabel2.Font = new System.Drawing.Font("Comic Sans MS", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.toolStripLabel2.ForeColor = System.Drawing.Color.LightGray;
+            this.toolStripLabel2.Image = ((System.Drawing.Image)(resources.GetObject("toolStripLabel2.Image")));
+            this.toolStripLabel2.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.toolStripLabel2.Name = "toolStripLabel2";
-            this.toolStripLabel2.Size = new System.Drawing.Size(183, 28);
+            this.toolStripLabel2.Size = new System.Drawing.Size(183, 25);
             this.toolStripLabel2.Text = "Measurement";
+            this.toolStripLabel2.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.toolStripLabel2.TextImageRelation = System.Windows.Forms.TextImageRelation.TextBeforeImage;
             // 
             // label2
             // 
             this.label2.Dock = System.Windows.Forms.DockStyle.Top;
-            this.label2.Location = new System.Drawing.Point(0, 366);
+            this.label2.Location = new System.Drawing.Point(0, 363);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(186, 10);
             this.label2.TabIndex = 28;
