@@ -172,13 +172,13 @@ namespace Vision_Measurement
             {
                 Bitmap gray_bmp = MakeGrayscale(bmp);
                 button3.Text = "BGR";
-                button3.Image = Image.FromFile("C:\\Users\\francis\\source\\repos\\Vision Measurement\\Icons\\BGR Icon.png");
+                button3.Image = Image.FromFile("...\\Vision Measurement\\Icons\\BGR Icon.png");
                 pictureBox1.Image = gray_bmp;
             }
             else
             {
                 button3.Text = "GrayScale";
-                button3.Image = Image.FromFile("C:\\Users\\francis\\source\\repos\\Vision Measurement\\Icons\\Grayscale Icon.png");
+                button3.Image = Image.FromFile("...\\Vision Measurement\\Icons\\Grayscale Icon.png");
                 pictureBox1.Image = bmp;
             }
         }
