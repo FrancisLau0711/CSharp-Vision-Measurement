@@ -24,7 +24,7 @@ namespace Vision_Measurement
         private EMeasurement Measurement => (EMeasurement)comboBox1.SelectedItem;
         public const int measurementMaxCount = short.MaxValue;
         public const int displayDecimalPlaces = 3;
-        private readonly double distPerPixel = 3.45;
+        private double distPerPixel = 3.45;
         private const float crossScale = 5;
         private const float smallArcScale = 10;
         private float scale = 1.0F;
@@ -61,7 +61,7 @@ namespace Vision_Measurement
             WindowState = FormWindowState.Maximized;
         }
 
-        public Form1(Image<Bgr, byte> image, double ddp): this()
+        public Form1(Image<Bgr, byte> image, double ddp)
         {
             InitializeComponent();
             InitializeControl();
@@ -69,6 +69,8 @@ namespace Vision_Measurement
             Text = "Vision Measurement";
             rawImage = image.ToBitmap();
             distPerPixel = ddp;
+            pictureBox1.Size = rawImage.Size;
+            pictureBox1.Image = rawImage;
         }
 
         private void InitializeControl()
@@ -79,6 +81,10 @@ namespace Vision_Measurement
             comboBox1.DataSource = Enum.GetValues(typeof(EMeasurement));
             comboBox1.DropDownStyle = ComboBoxStyle.DropDownList;
             toolStrip1.Renderer = new RemoveBorder();
+            toolStrip2.Renderer = new RemoveBorder();
+            toolStrip3.Renderer = new RemoveBorder();
+            toolStrip4.Renderer = new RemoveBorder();
+            toolStrip5.Renderer = new RemoveBorder();
         }
 
         private void InitializePen()
@@ -172,13 +178,13 @@ namespace Vision_Measurement
             {
                 Bitmap gray_bmp = MakeGrayscale(bmp);
                 button3.Text = "BGR";
-                button3.Image = Image.FromFile("...\\Vision Measurement\\Icons\\BGR Icon.png");
+                button3.Image = Image.FromFile("C:\\Users\\francis\\source\\repos\\Vision Measurement\\Icons\\BGR Icon.png");
                 pictureBox1.Image = gray_bmp;
             }
             else
             {
                 button3.Text = "GrayScale";
-                button3.Image = Image.FromFile("...\\Vision Measurement\\Icons\\Grayscale Icon.png");
+                button3.Image = Image.FromFile("C:\\Users\\francis\\source\\repos\\Vision Measurement\\Icons\\Grayscale Icon.png");
                 pictureBox1.Image = bmp;
             }
         }
@@ -1569,6 +1575,25 @@ namespace Vision_Measurement
                 }
                 last_scale = scale;
                 pictureBox1.Invalidate();
+            }
+        }
+
+        private void Form1KeyDown(object sender, KeyEventArgs e)
+        {
+            switch (e.KeyCode)
+            {
+                case Keys.D:
+                    pictureBox1.Left -= pictureBox1.Width / 10;
+                    break;
+                case Keys.A:
+                    pictureBox1.Left += pictureBox1.Width / 10;
+                    break;
+                case Keys.W:
+                    pictureBox1.Top += pictureBox1.Height / 10;
+                    break;
+                case Keys.S:
+                    pictureBox1.Top -= pictureBox1.Height / 10;
+                    break;
             }
         }
     }
