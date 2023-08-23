@@ -68,7 +68,6 @@ namespace Vision_Measurement
             InitializeComponent();
             InitializeControl();
             InitializePen();
-            Text = "Vision Measurement";
             rawImage = image.ToBitmap();
             distPerPixel = ddp;
             pictureBox1.Size = rawImage.Size;
@@ -77,11 +76,9 @@ namespace Vision_Measurement
 
         private void InitializeControl()
         {
-            panel1.Size = new Size(1260, 620);
             pictureBox1.SizeMode = PictureBoxSizeMode.AutoSize;
             pictureBox1.SendToBack();
             comboBox1.DataSource = Enum.GetValues(typeof(EMeasurement));
-            comboBox1.DropDownStyle = ComboBoxStyle.DropDownList;
             toolStrip1.Renderer = new RemoveBorder();
             toolStrip2.Renderer = new RemoveBorder();
             toolStrip3.Renderer = new RemoveBorder();
@@ -118,9 +115,9 @@ namespace Vision_Measurement
             {
                 return;
             }
+            pictureBox1.Enabled = false;
             Bitmap image = new Bitmap(pictureBox1.ClientSize.Width, pictureBox1.ClientSize.Height);
             pictureBox1.DrawToBitmap(image, pictureBox1.ClientRectangle);
-            pictureBox1.Enabled = false;
             SaveFileDialog file = new SaveFileDialog()
             {
                 Title = "Save Image",
@@ -131,7 +128,7 @@ namespace Vision_Measurement
             };
             if (file.ShowDialog() == DialogResult.OK)
             {
-                System.IO.FileStream fs = (System.IO.FileStream)file.OpenFile();
+                FileStream fs = (FileStream)file.OpenFile();
                 if (file.FileName != "")
                 {
                     switch (file.FilterIndex)
@@ -157,9 +154,9 @@ namespace Vision_Measurement
             Bitmap newBitmap = new Bitmap(original.Width, original.Height);
             using (Graphics g = Graphics.FromImage(newBitmap))
             {
-                ColorMatrix colorMatrix = new ColorMatrix(new float[][] { new float[] {.3f, .3f, .3f, 0, 0},
-                                                                           new float[] {.59f, .59f, .59f, 0, 0},
-                                                                           new float[] {.11f, .11f, .11f, 0, 0},
+                ColorMatrix colorMatrix = new ColorMatrix(new float[][] { new float[] {0.3F, 0.3F, 0.3F, 0, 0},
+                                                                           new float[] {0.59F, 0.59F, 0.59F, 0, 0},
+                                                                           new float[] {0.11F, 0.11F, 0.11F, 0, 0},
                                                                            new float[] {0, 0, 0, 1, 0},
                                                                            new float[] {0, 0, 0, 0, 1 } });
                 using (ImageAttributes attributes = new ImageAttributes())
@@ -259,8 +256,8 @@ namespace Vision_Measurement
                 return;
             }
             scale = 1.0F;
-            scaleText.Text = "     " + ((int)Math.Round(scale * 100)).ToString() + "%";
-            Bitmap bmp = ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
+            scaleText.Text = "     100%";
+            Bitmap bmp = ResizeImage(rawImage, rawImage.Width, rawImage.Height);
             pictureBox1.Image = bmp;
             pictureBox1.Left = 0;
             pictureBox1.Top = 0;
@@ -491,6 +488,8 @@ namespace Vision_Measurement
                                 switch (rad.sequence)
                                 {
                                     case 0:
+                                        rad.offsetCoord = PointF.Empty;
+                                        rad.coord2 = PointF.Empty;
                                         rad.startCoord = e.Location;
                                         rad.sequence++;
                                         break;
@@ -515,9 +514,7 @@ namespace Vision_Measurement
                                         rad.finalRawRadius[rad.radiusCount - 1] = rad.radius / scale;
                                         rad.sequence = 0;
                                         rad.distance = 0;
-                                        rad.offsetCoord = PointF.Empty;
-                                        rad.startCoord = PointF.Empty;
-                                        rad.coord2 = PointF.Empty;
+                                        rad.startCoord = PointF.Empty; 
                                         rad.coord3 = PointF.Empty;
                                         rad.endCoord = PointF.Empty;
                                         rad.extendedCoord = PointF.Empty;
@@ -537,6 +534,8 @@ namespace Vision_Measurement
                                 switch (dia.sequence)
                                 {
                                     case 0:
+                                        dia.offsetCoord = PointF.Empty;
+                                        dia.coord2 = PointF.Empty;
                                         dia.startCoord = e.Location;
                                         dia.sequence++;
                                         break;
@@ -561,9 +560,7 @@ namespace Vision_Measurement
                                         dia.finalRawRadius[dia.radiusCount - 1] = dia.radius / scale;
                                         dia.sequence = 0;
                                         dia.distance = 0;
-                                        dia.offsetCoord = PointF.Empty;
                                         dia.startCoord = PointF.Empty;
-                                        dia.coord2 = PointF.Empty;
                                         dia.coord3 = PointF.Empty;
                                         dia.endCoord = PointF.Empty;
                                         dia.extendedCoord = PointF.Empty;
@@ -615,6 +612,10 @@ namespace Vision_Measurement
                     }
                     break;
                 case MouseButtons.Right:
+                    if (isDrag == true)
+                    {
+                        return;
+                    }
                     if (len.sequence < 1 &&
                        ((par.extendedCoord != Point.Empty && par.sequence == 3) || par.sequence == 0) &&
                        ((per.extendedCoord != Point.Empty && per.sequence == 3) || per.sequence == 0) &&
@@ -717,10 +718,6 @@ namespace Vision_Measurement
                     }
                     else
                     {
-                        if(isDrag == true)
-                        {
-                            return;
-                        }
                         len.StopMeasurement();
                         par.StopMeasurement();
                         per.StopMeasurement();
@@ -737,8 +734,8 @@ namespace Vision_Measurement
         {
             if (dragging && sender is Control c)
             {
-                c.Top = e.Y + c.Top - mouseLocation.Y;
-                c.Left = e.X + c.Left - mouseLocation.X;
+                c.Top += e.Y - mouseLocation.Y;
+                c.Left += e.X - mouseLocation.X;
             }
             else if (len.isRemoveLine)
             {
@@ -764,7 +761,7 @@ namespace Vision_Measurement
                     case EMeasurement.Length:
                         if (len.startCoord != PointF.Empty && len.endCoord == PointF.Empty)
                         {
-                            len.CheckAngle();
+                            (len.lineVertical, len.lineHorizontal) = len.CheckAngle();
                             len.movingCoord = e.Location;
                             if (len.lineHorizontal)
                             {
@@ -802,7 +799,7 @@ namespace Vision_Measurement
                     case EMeasurement.Parallel:
                         if (par.startCoord != PointF.Empty && par.endCoord == PointF.Empty)
                         {
-                            par.CheckAngle();
+                            (par.lineVertical, par.lineHorizontal) = par.CheckAngle();
                             par.movingCoord = e.Location;
                             if (par.lineHorizontal)
                             {
@@ -839,7 +836,7 @@ namespace Vision_Measurement
                     case EMeasurement.Perpendicular:
                         if (per.startCoord != PointF.Empty && per.endCoord == PointF.Empty)
                         {
-                            per.CheckAngle();
+                            (per.lineVertical, per.lineHorizontal) = per.CheckAngle();
                             per.movingCoord = e.Location;
                             if (per.lineHorizontal)
                             {
@@ -977,7 +974,7 @@ namespace Vision_Measurement
                 PointF newExtendedCoord = new PointF { X = len.lines[i + 2].X - dx, Y = len.lines[i + 2].Y - dy };
                 DrawCross(ref g, len.lines[i]);
                 DrawCross(ref g, len.lines[i + 1]);
-                if (len.lines[i + 4].X > len.lines[i + 3].X && len.lines[i + 4].X < len.lines[i + 2].X)
+                if (len.lines[i + 4].X >= len.lines[i + 3].X && len.lines[i + 4].X <= len.lines[i + 2].X)
                 {
                     g.DrawLine(arrowHarrowT, len.lines[i + 2], len.lines[i + 3]);
                 }
@@ -1010,7 +1007,7 @@ namespace Vision_Measurement
                 PointF newExtendedCoord = new PointF { X = par.lines[i + 4].X - dx, Y = par.lines[i + 4].Y - dy };
                 g.DrawLine(Pens.Yellow, par.lines[i], par.lines[i + 1]);
                 g.DrawLine(regular, par.lines[i + 2], par.lines[i + 3]);
-                if (par.lines[i + 6].X > par.lines[i + 4].X && par.lines[i + 6].X < par.lines[i + 5].X)
+                if (par.lines[i + 6].X >= par.lines[i + 4].X && par.lines[i + 6].X <= par.lines[i + 5].X)
                 {
                     g.DrawLine(arrowHarrowT, par.lines[i + 4], par.lines[i + 5]);
                 }
@@ -1046,8 +1043,8 @@ namespace Vision_Measurement
                 RectangleF rectangle = new RectangleF(per.lines[i + 5], size);
                 RectangleF rectangle2 = new RectangleF(labelPosition, size2);
                 DrawCross(ref g, per.lines[i + 2]);
-                if ((per.lines[i + 5].X > per.lines[i + 3].X && per.lines[i + 5].X < per.lines[i + 4].X) ||
-                    (per.lines[i + 5].X < per.lines[i + 3].X && per.lines[i + 5].X > per.lines[i + 4].X))
+                if ((per.lines[i + 5].X >= per.lines[i + 3].X && per.lines[i + 5].X <= per.lines[i + 4].X) ||
+                    (per.lines[i + 5].X <= per.lines[i + 3].X && per.lines[i + 5].X >= per.lines[i + 4].X))
                 {
                     g.DrawLine(arrowHarrowT, per.lines[i + 3], per.lines[i + 4]);
                 }
@@ -1221,7 +1218,7 @@ namespace Vision_Measurement
                             PointF newExtendedCoord = new PointF { X = len.movingCoord2.X - dx, Y = len.movingCoord2.Y - dy };
                             DrawCross(ref g, len.startCoord);
                             DrawCross(ref g, len.endCoord);
-                            if (len.extendedCoord.X > len.newEndCoord.X && len.extendedCoord.X < len.movingCoord2.X)
+                            if (len.extendedCoord.X >= len.newEndCoord.X && len.extendedCoord.X <= len.movingCoord2.X)
                             {
                                 g.DrawLine(arrowHarrowT, len.movingCoord2, len.newEndCoord);
                             }
@@ -1273,7 +1270,7 @@ namespace Vision_Measurement
                             PointF newExtendedCoord = new PointF { X = par.perpendicularCoord.X - dx, Y = par.perpendicularCoord.Y - dy };
                             SizeF size = g.MeasureString(perpendicularDistance, font);
                             RectangleF rectangle = new RectangleF(par.movingCoord2, size);
-                            if (par.movingCoord2.X > par.perpendicularCoord.X && par.movingCoord2.X < par.perpendicularCoord2.X)
+                            if (par.movingCoord2.X >= par.perpendicularCoord.X && par.movingCoord2.X <= par.perpendicularCoord2.X)
                             {
                                 g.DrawLine(arrowHarrowT, par.perpendicularCoord, par.perpendicularCoord2);
                             }
@@ -1332,8 +1329,8 @@ namespace Vision_Measurement
                             RectangleF rectangle = new RectangleF(per.movingCoord2, size);
                             RectangleF rectangle2 = new RectangleF(labelPosition, size2);
                             DrawCross(ref g, per.offsetCoord);
-                            if ((per.movingCoord2.X > per.perpendicularCoord.X && per.movingCoord2.X < per.perpendicularCoord2.X) ||
-                                (per.movingCoord2.X < per.perpendicularCoord.X && per.movingCoord2.X > per.perpendicularCoord2.X))
+                            if ((per.movingCoord2.X >= per.perpendicularCoord.X && per.movingCoord2.X <= per.perpendicularCoord2.X) ||
+                                (per.movingCoord2.X <= per.perpendicularCoord.X && per.movingCoord2.X >= per.perpendicularCoord2.X))
                             {
                                 g.DrawLine(arrowHarrowT, per.perpendicularCoord, per.perpendicularCoord2);
                             }
@@ -1633,16 +1630,16 @@ namespace Vision_Measurement
 
         public virtual void RevertToOriginalSize(float scale)
         {
-            startCoord.X = (float)(startCoord.X / scale);
-            startCoord.Y = (float)(startCoord.Y / scale);
-            endCoord.X = (float)(endCoord.X / scale);
-            endCoord.Y = (float)(endCoord.Y / scale);
-            offsetCoord.X = (float)(offsetCoord.X / scale);
-            offsetCoord.Y = (float)(offsetCoord.Y / scale);
-            newEndCoord.X = (float)(newEndCoord.X / scale);
-            newEndCoord.Y = (float)(newEndCoord.Y / scale);
-            extendedCoord.X = (float)(extendedCoord.X / scale);
-            extendedCoord.Y = (float)(extendedCoord.Y / scale);
+            startCoord.X /= scale;
+            startCoord.Y /= scale;
+            endCoord.X /= scale;
+            endCoord.Y /= scale;
+            offsetCoord.X /= scale;
+            offsetCoord.Y /= scale;
+            newEndCoord.X /= scale;
+            newEndCoord.Y /= scale;
+            extendedCoord.X /= scale;
+            extendedCoord.Y /= scale;
         }
 
         public void RescaleAll(float scale)
@@ -1674,40 +1671,37 @@ namespace Vision_Measurement
             };
         }
 
-        public double GetAngle(PointF start, PointF end)
+        private double GetAngle(PointF start, PointF end)
         {
             double x = end.X - start.X;
             double y = end.Y - start.Y;
             return Math.Abs(Math.Atan2(y, x) * (180 / Math.PI));
         }
 
-        public void CheckAngle()
+        public (bool, bool) CheckAngle()
         {
             if (Control.ModifierKeys == Keys.Shift)
             {
                 double angle = GetAngle(startCoord, movingCoord);
                 if (angle < thresholdAngleX || angle > (180 - thresholdAngleX))
                 {
-                    lineVertical = false;
-                    lineHorizontal = true;
+                    return (false, true);
                 }
                 else if (angle > thresholdAngleY && angle < (180 - thresholdAngleY))
                 {
-                    lineVertical = true;
-                    lineHorizontal = false;
+                    return (true, false);
                 }
                 else
                 {
-                    lineVertical = false;
-                    lineHorizontal = false;
+                    return (false, false);
                 }
             }
             else
             {
-                lineVertical = false;
-                lineHorizontal = false;
+                return (false, false);
             }
         }
+
         public bool CheckIntercept(PointF startA, PointF endA, PointF startB, PointF endB)
         {
             float orientation1 = Orientation(startA, endA, startB);
@@ -1782,20 +1776,20 @@ namespace Vision_Measurement
 
         public override void RevertToOriginalSize(float scale)
         {
-            epolateCoord1.X = (float)(epolateCoord1.X / scale);
-            epolateCoord1.Y = (float)(epolateCoord1.Y / scale);
-            epolateCoord2.X = (float)(epolateCoord2.X / scale);
-            epolateCoord2.Y = (float)(epolateCoord2.Y / scale);
-            epolateCoord3.X = (float)(epolateCoord3.X / scale);
-            epolateCoord3.Y = (float)(epolateCoord3.Y / scale);
-            epolateCoord4.X = (float)(epolateCoord4.X / scale);
-            epolateCoord4.Y = (float)(epolateCoord4.Y / scale);
-            perpendicularCoord.X = (float)(perpendicularCoord.X / scale);
-            perpendicularCoord.Y = (float)(perpendicularCoord.Y / scale);
-            perpendicularCoord2.X = (float)(perpendicularCoord2.X / scale);
-            perpendicularCoord2.Y = (float)(perpendicularCoord2.Y / scale);
-            extendedCoord.X = (float)(extendedCoord.X / scale);
-            extendedCoord.Y = (float)(extendedCoord.Y / scale);
+            epolateCoord1.X /= scale;
+            epolateCoord1.Y /= scale;
+            epolateCoord2.X /= scale;
+            epolateCoord2.Y /= scale;
+            epolateCoord3.X /= scale;
+            epolateCoord3.Y /= scale;
+            epolateCoord4.X /= scale;
+            epolateCoord4.Y /= scale;
+            perpendicularCoord.X /= scale;
+            perpendicularCoord.Y /= scale;
+            perpendicularCoord2.X /= scale;
+            perpendicularCoord2.Y /= scale;
+            extendedCoord.X /= scale;
+            extendedCoord.Y /= scale;
         }
 
         public override void RemoveLine(int index)
@@ -1857,20 +1851,20 @@ namespace Vision_Measurement
     {
         public override void RevertToOriginalSize(float scale)
         {
-            epolateCoord1.X = (float)(epolateCoord1.X / scale);
-            epolateCoord1.Y = (float)(epolateCoord1.Y / scale);
-            epolateCoord2.X = (float)(epolateCoord2.X / scale);
-            epolateCoord2.Y = (float)(epolateCoord2.Y / scale);
-            offsetCoord.X = (float)(offsetCoord.X / scale);
-            offsetCoord.Y = (float)(offsetCoord.Y / scale);
-            perpendicularCoord.X = (float)(perpendicularCoord.X / scale);
-            perpendicularCoord.Y = (float)(perpendicularCoord.Y / scale);
-            perpendicularCoord2.X = (float)(perpendicularCoord2.X / scale);
-            perpendicularCoord2.Y = (float)(perpendicularCoord2.Y / scale);
-            extendedCoord.X = (float)(extendedCoord.X / scale);
-            extendedCoord.Y = (float)(extendedCoord.Y / scale);
-            endCoord.X = (float)(endCoord.X / scale);
-            endCoord.Y = (float)(endCoord.Y / scale);
+            epolateCoord1.X /= scale;
+            epolateCoord1.Y /= scale;
+            epolateCoord2.X /= scale;
+            epolateCoord2.Y /= scale;
+            offsetCoord.X /= scale;
+            offsetCoord.Y /= scale;
+            perpendicularCoord.X /= scale;
+            perpendicularCoord.Y /= scale;
+            perpendicularCoord2.X /= scale;
+            perpendicularCoord2.Y /= scale;
+            extendedCoord.X /= scale;
+            extendedCoord.Y /= scale;
+            endCoord.X /= scale;
+            endCoord.Y /= scale;
         }
 
         public override void RemoveLine(int index)
@@ -1942,12 +1936,12 @@ namespace Vision_Measurement
 
         public virtual void RevertToOriginalSize(float scale)
         {
-            center.X = (float)(center.X / scale);
-            center.Y = (float)(center.Y / scale);
-            offsetCoord.X = (float)(offsetCoord.X / scale);
-            offsetCoord.Y = (float)(offsetCoord.Y / scale);
-            extendedCoord.X = (float)(extendedCoord.X / scale);
-            extendedCoord.Y = (float)(extendedCoord.Y / scale);
+            center.X /= scale;
+            center.Y /= scale;
+            offsetCoord.X /= scale;
+            offsetCoord.Y /= scale;
+            extendedCoord.X /= scale;
+            extendedCoord.Y /= scale;
         }
 
         public void RescaleAll(float scale)
@@ -2118,14 +2112,14 @@ namespace Vision_Measurement
 
         public override void RevertToOriginalSize(float scale)
         {
-            center.X = (float)(center.X / scale);
-            center.Y = (float)(center.Y / scale);
-            startCoord.X = (float)(startCoord.X / scale);
-            startCoord.Y = (float)(startCoord.Y / scale);
-            endCoord.X = (float)(endCoord.X / scale);
-            endCoord.Y = (float)(endCoord.Y / scale);
-            midCoord.X = (float)(midCoord.X / scale);
-            midCoord.Y = (float)(midCoord.Y / scale);
+            center.X /= scale;
+            center.Y /= scale;
+            startCoord.X /= scale;
+            startCoord.Y /= scale;
+            endCoord.X /= scale;
+            endCoord.Y /= scale;
+            midCoord.X /= scale;
+            midCoord.Y /= scale;
         }
 
         public override float CircleEquation(PointF coord1, PointF coord2, PointF coord3, float threshold)
@@ -2293,11 +2287,11 @@ namespace Vision_Measurement
                 newStart = new PointF { X = end.X, Y = end.Y + 1 };
                 return newStart;
             }
-            double m = (double)(end.Y - start.Y) / (double)(end.X - start.X);
-            double new_m = -(1 / m);
-            double c = (double)end.Y - (new_m * (double)end.X);
-            double d = ((double)(end.Y + threshold) - c) / new_m;
-            newStart = new PointF { X = (float)d , Y = end.Y + threshold };
+            float m = (end.Y - start.Y) / (end.X - start.X);
+            float new_m = -(1 / m);
+            float c = end.Y - (new_m * end.X);
+            float d = ((end.Y + threshold) - c) / new_m;
+            newStart = new PointF { X = d , Y = end.Y + threshold };
             return newStart;
         }
 
@@ -2322,10 +2316,6 @@ namespace Vision_Measurement
 
     public class RemoveBorder : ToolStripSystemRenderer
     {
-        public RemoveBorder()
-        {
-        }
-
         protected override void OnRenderToolStripBorder(ToolStripRenderEventArgs e)
         {
             //base.OnRenderToolStripBorder(e);
