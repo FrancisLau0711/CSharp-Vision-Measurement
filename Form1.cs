@@ -106,9 +106,12 @@ namespace Vision_Measurement
             if (file.ShowDialog() == DialogResult.OK)
             {
                 string filepath = file.FileName;
-                rawImage = Image.FromFile(filepath);
-                pictureBox1.Size = rawImage.Size;
-                pictureBox1.Image = rawImage;
+                if(File.Exists(filepath))
+                {
+                    rawImage = Image.FromFile(filepath);
+                    pictureBox1.Size = rawImage.Size;
+                    pictureBox1.Image = rawImage;
+                }
             }
             pictureBox1.Enabled = true;
             cro.RectClear();
@@ -165,6 +168,7 @@ namespace Vision_Measurement
 
                     }
                 }
+                fs.Dispose();
             }
             cro.RectClear();
             pictureBox1.Invalidate();
@@ -174,13 +178,36 @@ namespace Vision_Measurement
         private void SaveCroppedImage(Image<Bgr, byte> img)
         {
             croppedImage = cro.getCropImage(img, cro.startCoord, cro.endCoord);
-            string workingDirectory = Directory.GetCurrentDirectory();
-            string newFolderPath = Directory.GetParent(workingDirectory).Parent.FullName + @"\Cropped Images";
-            string timeStamp = DateTime.Now.ToString("yyyyMMddHHmmss");
-            Directory.CreateDirectory(newFolderPath);
-            croppedImage.Save(newFolderPath + @"\Image-" + timeStamp + ".png", ImageFormat.Png);
-        }
+            SaveFileDialog file = new SaveFileDialog()
+            {
+                Title = "Save Image",
+                DefaultExt = "png",
+                Filter = "PNG Image|*.png|Bitmap Image|*.bmp|JPEG Image|*.jpeg",
+                FilterIndex = 1,
+                RestoreDirectory = true
+            };
+            if (file.ShowDialog() == DialogResult.OK)
+            {
+                FileStream fs = (FileStream)file.OpenFile();
+                if (file.FileName != "")
+                {
+                    switch (file.FilterIndex)
+                    {
+                        case 1:
+                            croppedImage.Save(fs, ImageFormat.Png);
+                            break;
+                        case 2:
+                            croppedImage.Save(fs, ImageFormat.Bmp);
+                            break;
+                        case 3:
+                            croppedImage.Save(fs, ImageFormat.Jpeg);
+                            break;
 
+                    }
+                }
+                fs.Dispose();
+            }
+        }
         private Bitmap MakeGrayscale(Bitmap original)
         {
             Bitmap newBitmap = new Bitmap(original.Width, original.Height);
@@ -240,6 +267,10 @@ namespace Vision_Measurement
             }
             scaleText.Text = "       " + ((int)Math.Round(scale * 100)).ToString() + "%";
             Bitmap bmp = ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
+            if(isGrayScale)
+            {
+                bmp = MakeGrayscale(bmp);
+            }
             pictureBox1.Image = bmp;
             if (last_scale != scale)
             {
@@ -267,6 +298,10 @@ namespace Vision_Measurement
             }
             scaleText.Text = "       " + ((int)Math.Round(scale * 100)).ToString() + "%";
             Bitmap bmp = ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
+            if (isGrayScale)
+            {
+                bmp = MakeGrayscale(bmp);
+            }
             pictureBox1.Image = bmp;
             if (last_scale != scale)
             {
@@ -290,6 +325,10 @@ namespace Vision_Measurement
             scale = 1.0F;
             scaleText.Text = "       100%";
             Bitmap bmp = ResizeImage(rawImage, rawImage.Width, rawImage.Height);
+            if (isGrayScale)
+            {
+                bmp = MakeGrayscale(bmp);
+            }
             pictureBox1.Image = bmp;
             pictureBox1.Left = 0;
             pictureBox1.Top = 0;
