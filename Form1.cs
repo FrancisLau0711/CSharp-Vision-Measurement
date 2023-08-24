@@ -4,10 +4,10 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Reflection;
 using System.Windows.Forms;
 using Emgu.CV;
 using Emgu.CV.Structure;
+using Image = System.Drawing.Image;
 
 namespace Vision_Measurement
 {
@@ -34,11 +34,13 @@ namespace Vision_Measurement
         private bool isGrayScale = false;
         private bool isRemove = false;
         private bool isDrag = false;
+        private bool isCrop = false;
         private bool dragging = false;
         private Point mouseLocation = new Point(0, 0);
         private static readonly Color mainColor = Color.Cyan;
         private static readonly Color subColor = Color.Yellow;
         private Image rawImage;
+        private Image croppedImage;
         readonly Pen regular = new Pen(mainColor);
         readonly Pen arrowHarrowT = new Pen(mainColor);
         readonly Pen arrowT = new Pen(mainColor);
@@ -54,6 +56,7 @@ namespace Vision_Measurement
         readonly Diameter dia = new Diameter();
         readonly Arc arc = new Arc();
         readonly Dimensioning dim = new Dimensioning();
+        readonly CropImage cro = new CropImage();
 
         public Form1()
         {
@@ -70,6 +73,7 @@ namespace Vision_Measurement
             InitializePen();
             rawImage = image.ToBitmap();
             distPerPixel = ddp;
+            pictureBox1.Enabled = true;
             pictureBox1.Size = rawImage.Size;
             pictureBox1.Image = rawImage;
         }
@@ -107,6 +111,22 @@ namespace Vision_Measurement
                 pictureBox1.Image = rawImage;
             }
             pictureBox1.Enabled = true;
+            cro.RectClear();
+            pictureBox1.Invalidate();
+        }
+
+        private void DeleteImage(object sender, EventArgs e)
+        {
+            pictureBox1.Image = null;
+            rawImage = null;
+            len.LengthClear();
+            par.ParallelClear();
+            per.PerpendicularClear();
+            rad.RadiusClear();
+            dia.DiameterClear();
+            arc.ArcClear();
+            cro.RectClear();
+            pictureBox1.Invalidate();
         }
 
         private void SaveImage(object sender, EventArgs e)
@@ -146,7 +166,19 @@ namespace Vision_Measurement
                     }
                 }
             }
+            cro.RectClear();
+            pictureBox1.Invalidate();
             pictureBox1.Enabled = true;
+        }
+
+        private void SaveCroppedImage(Image<Bgr, byte> img)
+        {
+            croppedImage = cro.getCropImage(img, cro.startCoord, cro.endCoord);
+            string workingDirectory = Directory.GetCurrentDirectory();
+            string newFolderPath = Directory.GetParent(workingDirectory).Parent.FullName + @"\Cropped Images";
+            string timeStamp = DateTime.Now.ToString("yyyyMMddHHmmss");
+            Directory.CreateDirectory(newFolderPath);
+            croppedImage.Save(newFolderPath + @"\Image-" + timeStamp + ".png", ImageFormat.Png);
         }
 
         private Bitmap MakeGrayscale(Bitmap original)
@@ -206,7 +238,7 @@ namespace Vision_Measurement
             {
                 scale = 2.0F;
             }
-            scaleText.Text = "     " + ((int)Math.Round(scale * 100)).ToString() + "%";
+            scaleText.Text = "       " + ((int)Math.Round(scale * 100)).ToString() + "%";
             Bitmap bmp = ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
             pictureBox1.Image = bmp;
             if (last_scale != scale)
@@ -233,7 +265,7 @@ namespace Vision_Measurement
             {
                 scale = 0.1F;
             }
-            scaleText.Text = "     " + ((int)Math.Round(scale * 100)).ToString() + "%";
+            scaleText.Text = "       " + ((int)Math.Round(scale * 100)).ToString() + "%";
             Bitmap bmp = ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
             pictureBox1.Image = bmp;
             if (last_scale != scale)
@@ -256,7 +288,7 @@ namespace Vision_Measurement
                 return;
             }
             scale = 1.0F;
-            scaleText.Text = "     100%";
+            scaleText.Text = "       100%";
             Bitmap bmp = ResizeImage(rawImage, rawImage.Width, rawImage.Height);
             pictureBox1.Image = bmp;
             pictureBox1.Left = 0;
@@ -303,8 +335,12 @@ namespace Vision_Measurement
             if(isRemove)
             {
                 isDrag = false;
+                isCrop = false;
                 button5.BackColor = Color.Green;
                 button6.BackColor = Color.FromArgb(24, 30, 54);
+                button7.BackColor = Color.FromArgb(24, 30, 54);
+                cro.RectClear();
+                pictureBox1.Invalidate();
             }
             else
             {
@@ -317,14 +353,38 @@ namespace Vision_Measurement
             if (isDrag)
             {
                 isRemove = false;
+                isCrop = false;
                 button6.BackColor = Color.Green;
                 button5.BackColor = Color.FromArgb(24, 30, 54);
+                button7.BackColor = Color.FromArgb(24, 30, 54);
+                cro.RectClear();
+                pictureBox1.Invalidate();
             }
             else
             {
                 button6.BackColor = Color.FromArgb(24, 30, 54);
             }
         }
+
+        private void CropImage(object sender, EventArgs e)
+        {
+            isCrop = !isCrop;
+            if (isCrop)
+            {
+                isRemove = false;
+                isDrag = false;
+                button7.BackColor = Color.Green;
+                button5.BackColor = Color.FromArgb(24, 30, 54);
+                button6.BackColor = Color.FromArgb(24, 30, 54);
+            }
+            else
+            {
+                button7.BackColor = Color.FromArgb(24, 30, 54);
+                cro.RectClear();
+                pictureBox1.Invalidate();
+            }
+        }
+
         private void PictureBox1MouseDown(object sender, MouseEventArgs e)
         {
             if (isDrag && e.Button == MouseButtons.Right)
@@ -333,10 +393,35 @@ namespace Vision_Measurement
                 mouseLocation = new Point{ X = e.X, Y = e.Y };
                 Cursor = Cursors.SizeAll;
             }
+            else if(isCrop && e.Button == MouseButtons.Right && pictureBox1.Image != null)
+            {
+                cro.startCoord = e.Location;
+                cro.endCoord = PointF.Empty;
+                cro.movingCoord = PointF.Empty;
+            }
+            else
+            {
+                cro.RectClear();
+                pictureBox1.Invalidate();
+            }
         }
         private void PictureBox1MouseUp(object sender, MouseEventArgs e)
         {
             dragging = false;
+            if(cro.movingCoord != PointF.Empty)
+            {
+                cro.endCoord = cro.movingCoord;
+                cro.RevertToOriginalSize(scale);
+                Bitmap bm = new Bitmap(pictureBox1.ClientSize.Width, pictureBox1.ClientSize.Height);
+                pictureBox1.DrawToBitmap(bm, pictureBox1.ClientRectangle);
+                Image<Bgr, byte> img = bm.ToImage<Bgr, byte>();
+                SaveCroppedImage(img);
+                pictureBox1.Invalidate();
+            }
+            else
+            {
+                cro.startCoord = PointF.Empty;
+            }
             Cursor = Cursors.Cross;
         }
 
@@ -514,7 +599,7 @@ namespace Vision_Measurement
                                         rad.finalRawRadius[rad.radiusCount - 1] = rad.radius / scale;
                                         rad.sequence = 0;
                                         rad.distance = 0;
-                                        rad.startCoord = PointF.Empty; 
+                                        rad.startCoord = PointF.Empty;
                                         rad.coord3 = PointF.Empty;
                                         rad.endCoord = PointF.Empty;
                                         rad.extendedCoord = PointF.Empty;
@@ -612,7 +697,7 @@ namespace Vision_Measurement
                     }
                     break;
                 case MouseButtons.Right:
-                    if (isDrag == true)
+                    if (isDrag || isCrop)
                     {
                         return;
                     }
@@ -736,6 +821,15 @@ namespace Vision_Measurement
             {
                 c.Top += e.Y - mouseLocation.Y;
                 c.Left += e.X - mouseLocation.X;
+            }
+            else if(isCrop && cro.startCoord != Point.Empty)
+            {
+                double distance = dim.GetDistance(cro.startCoord, e.Location);
+                if(distance > 1)
+                {
+                    cro.movingCoord = e.Location;
+                }
+                pictureBox1.Invalidate();
             }
             else if (len.isRemoveLine)
             {
@@ -1177,6 +1271,20 @@ namespace Vision_Measurement
                 g.DrawString(radius, new Font("Comic Sans MS", 8), sb_black, arc.circles[i + 3]);
                 g.DrawString(sweepAngle, new Font("Comic Sans MS", 8), sb_black, arc.circles[i]);
             }
+            if(isCrop && cro.movingCoord != PointF.Empty && cro.endCoord == PointF.Empty)
+            {
+                float width = Math.Abs(cro.movingCoord.X - cro.startCoord.X);
+                float height = Math.Abs(cro.movingCoord.Y - cro.startCoord.Y);
+                g.DrawRectangle(dashedPen2, Math.Min(cro.movingCoord.X, cro.startCoord.X), Math.Min(cro.movingCoord.Y, cro.startCoord.Y), width, height);
+                return;
+            }
+            else if(isCrop && cro.endCoord != PointF.Empty)
+            {
+                float width = Math.Abs(cro.rawEndCoord.X * scale - cro.rawStartCoord.X * scale);
+                float height = Math.Abs(cro.rawEndCoord.Y * scale - cro.rawStartCoord.Y * scale);
+                g.DrawRectangle(dashedPen2, Math.Min(cro.rawEndCoord.X, cro.rawStartCoord.X) * scale, Math.Min(cro.rawEndCoord.Y, cro.rawStartCoord.Y) * scale, width, height);
+                return;
+            }
             if (len.isRemoveLine)
             {
                 if (len.endCoord == PointF.Empty)
@@ -1549,6 +1657,7 @@ namespace Vision_Measurement
             rad.RadiusClear();
             dia.DiameterClear();
             arc.ArcClear();
+            cro.RectClear();
             pictureBox1.Invalidate();
         }
 
@@ -2319,6 +2428,43 @@ namespace Vision_Measurement
         protected override void OnRenderToolStripBorder(ToolStripRenderEventArgs e)
         {
             //base.OnRenderToolStripBorder(e);
+        }
+    }
+
+    public class CropImage
+    {
+        public PointF startCoord = PointF.Empty;
+        public PointF movingCoord = PointF.Empty;
+        public PointF endCoord = PointF.Empty;
+        public PointF rawStartCoord = PointF.Empty;
+        public PointF rawEndCoord = PointF.Empty;
+
+        public Image getCropImage(Image<Bgr, byte> img, PointF startCoord, PointF endCoord)
+        {
+            int width = (int)Math.Abs(movingCoord.X - startCoord.X) - 1;
+            int height = (int)Math.Abs(movingCoord.Y - startCoord.Y) - 1;
+            Rectangle rect = new Rectangle((int)Math.Min(startCoord.X + 1, endCoord.X + 1), (int)Math.Min(startCoord.Y + 1, endCoord.Y + 1), width, height);
+            img.ROI = rect;
+            Image<Bgr, byte> imgROI = img.Copy();
+            img.ROI = Rectangle.Empty;
+            return imgROI.ToBitmap();
+        }
+
+        public void RectClear()
+        {
+            startCoord = PointF.Empty;
+            movingCoord = PointF.Empty;
+            endCoord = PointF.Empty;
+            rawStartCoord = PointF.Empty;
+            rawEndCoord = PointF.Empty;
+        }
+
+        public void RevertToOriginalSize(float scale)
+        {
+            rawStartCoord.X = startCoord.X / scale;
+            rawStartCoord.Y = startCoord.Y / scale;
+            rawEndCoord.X = endCoord.X / scale;
+            rawEndCoord.Y = endCoord.Y / scale;
         }
     }
 }
