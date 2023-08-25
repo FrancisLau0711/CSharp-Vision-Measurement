@@ -1751,6 +1751,11 @@ namespace Vision_Measurement
                     break;
             }
         }
+
+        private void FormClose(object sender, EventArgs e)
+        {
+            Application.Exit();
+        }
     }
 
     public class Length
