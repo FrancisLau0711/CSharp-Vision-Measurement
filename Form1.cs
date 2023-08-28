@@ -41,10 +41,10 @@ namespace Vision_Measurement
         private static readonly Color subColor = Color.Yellow;
         private Image rawImage;
         private Image croppedImage;
-        readonly Pen regular = new Pen(mainColor);
-        readonly Pen arrowHarrowT = new Pen(mainColor);
-        readonly Pen arrowT = new Pen(mainColor);
-        readonly Pen dashedarrowH = new Pen(mainColor)
+        readonly Pen regular = new Pen(mainColor, 1.5F);
+        readonly Pen arrowHarrowT = new Pen(mainColor, 1.5F);
+        readonly Pen arrowT = new Pen(mainColor, 1.5F);
+        readonly Pen dashedarrowH = new Pen(mainColor, 1.5F)
         {
             DashPattern = new float[] { 4F, 2F, 1F, 3F }
         };
@@ -102,7 +102,14 @@ namespace Vision_Measurement
         private void LoadImage(object sender, EventArgs e)
         {
             pictureBox1.Enabled = false;
-            OpenFileDialog file = new OpenFileDialog();
+            OpenFileDialog file = new OpenFileDialog()
+            {
+                Title = "Load Image",
+                DefaultExt = "png",
+                Filter = "PNG Image|*.png|Bitmap Image|*.bmp|JPEG Image|*.jpeg|JPG Image|*.jpg|All files|*.*",
+                FilterIndex = 1,
+                RestoreDirectory = true
+            };
             if (file.ShowDialog() == DialogResult.OK)
             {
                 string filepath = file.FileName;
@@ -1078,11 +1085,11 @@ namespace Vision_Measurement
         private void PictureBox1Paint(object sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
-            Pen dashedPen = new Pen(subColor)
+            Pen dashedPen = new Pen(subColor, 1.5F)
             {
                 DashPattern = new float[] { 4F, 2F, 1F, 3F }
             };
-            Pen dashedPen2 = new Pen(mainColor)
+            Pen dashedPen2 = new Pen(mainColor, 1.5F)
             {
                 DashPattern = new float[] { 4F, 2F, 1F, 3F }
             };
