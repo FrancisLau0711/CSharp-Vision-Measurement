@@ -83,7 +83,6 @@ namespace Vision_Measurement
         private void InitializeControl()
         {
             pictureBox1.SizeMode = PictureBoxSizeMode.AutoSize;
-            pictureBox1.SendToBack();
             comboBox1.DataSource = Enum.GetValues(typeof(EMeasurement));
             toolStrip1.Renderer = new RemoveBorder();
             toolStrip2.Renderer = new RemoveBorder();
@@ -157,7 +156,7 @@ namespace Vision_Measurement
             {
                 Title = "Save Image",
                 DefaultExt = "png",
-                Filter = "PNG Image|*.png|Bitmap Image|*.bmp|JPEG Image|*.jpeg",
+                Filter = "PNG Image|*.png|Bitmap Image|*.bmp|JPEG Image|*.jpeg|JPG Image|*.jpg",
                 FilterIndex = 1,
                 RestoreDirectory = true
             };
@@ -429,6 +428,7 @@ namespace Vision_Measurement
 
         private void PictureBox1MouseDown(object sender, MouseEventArgs e)
         {
+            if (rawImage == null) { Cursor = Cursors.Default; return; }
             if (isDrag && e.Button == MouseButtons.Right)
             {
                 dragging = true;
@@ -449,9 +449,11 @@ namespace Vision_Measurement
         }
         private void PictureBox1MouseUp(object sender, MouseEventArgs e)
         {
+            if (rawImage == null) { Cursor = Cursors.Default; return; }
             dragging = false;
             if(cro.movingCoord != PointF.Empty)
             {
+                Cursor = Cursors.WaitCursor;
                 cro.endCoord = cro.movingCoord;
                 cro.RevertToOriginalSize(scale);
                 Bitmap bm = new Bitmap(pictureBox1.ClientSize.Width, pictureBox1.ClientSize.Height);
@@ -469,6 +471,7 @@ namespace Vision_Measurement
 
         private void PictureBox1MouseClick(object sender, MouseEventArgs e)
         {
+            if (rawImage == null) { Cursor = Cursors.Default; return; }
             switch (e.Button)
             {
                 case MouseButtons.Left:
@@ -860,6 +863,7 @@ namespace Vision_Measurement
 
         private void PictureBox1MouseMove(object sender, MouseEventArgs e)
         {
+            if (rawImage == null) { Cursor = Cursors.Default; return; }
             if (dragging && sender is Control c)
             {
                 c.Top += e.Y - mouseLocation.Y;
@@ -1778,6 +1782,7 @@ namespace Vision_Measurement
                 }
                 last_dpp = distPerPixel;
                 textBox1.Text = distPerPixel + " μm";
+                pictureBox1.Invalidate();
             }
         }
     }
