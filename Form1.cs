@@ -27,6 +27,7 @@ namespace Vision_Measurement
         public const int measurementMaxCount = short.MaxValue;
         public const int displayDecimalPlaces = 3;
         private double distPerPixel = 3.45;
+        private double last_dpp = 0;
         private const float crossScale = 5;
         private const float smallArcScale = 10;
         private float scale = 1.0F;
@@ -88,6 +89,8 @@ namespace Vision_Measurement
             toolStrip3.Renderer = new RemoveBorder();
             toolStrip4.Renderer = new RemoveBorder();
             toolStrip5.Renderer = new RemoveBorder();
+            toolStrip6.Renderer = new RemoveBorder();
+            toolStrip7.Renderer = new RemoveBorder();
         }
 
         private void InitializePen()
@@ -1762,6 +1765,26 @@ namespace Vision_Measurement
         private void FormClose(object sender, EventArgs e)
         {
             Application.Exit();
+        }
+
+        private void ChangeScale(object sender, KeyEventArgs e)
+        {
+            if(e.KeyCode == Keys.Enter)
+            {
+                string temp = textBox1.Text.Replace("μm", "");
+                bool isValid = Double.TryParse(temp, out double dpp);
+                if(!isValid)
+                {
+                    if (last_dpp != 0) distPerPixel = last_dpp;
+                    else distPerPixel = 3.45;
+                }
+                else
+                {
+                    distPerPixel = dpp;
+                }
+                last_dpp = distPerPixel;
+                textBox1.Text = distPerPixel + " μm";
+            }
         }
     }
 

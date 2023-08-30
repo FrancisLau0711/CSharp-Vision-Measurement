@@ -32,6 +32,10 @@
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.panel1 = new System.Windows.Forms.Panel();
             this.panel2 = new System.Windows.Forms.Panel();
+            this.toolStrip7 = new System.Windows.Forms.ToolStrip();
+            this.toolStripLabel3 = new System.Windows.Forms.ToolStripLabel();
+            this.toolStrip6 = new System.Windows.Forms.ToolStrip();
+            this.textBox1 = new System.Windows.Forms.TextBox();
             this.button7 = new System.Windows.Forms.Button();
             this.button6 = new System.Windows.Forms.Button();
             this.button5 = new System.Windows.Forms.Button();
@@ -56,9 +60,12 @@
             this.panel3 = new System.Windows.Forms.Panel();
             this.label1 = new System.Windows.Forms.Label();
             this.button9 = new System.Windows.Forms.Button();
+            this.label4 = new System.Windows.Forms.Label();
+            this.label5 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.panel1.SuspendLayout();
             this.panel2.SuspendLayout();
+            this.toolStrip7.SuspendLayout();
             this.toolStrip2.SuspendLayout();
             this.toolStrip1.SuspendLayout();
             this.toolStrip5.SuspendLayout();
@@ -83,18 +90,23 @@
             // panel1
             // 
             this.panel1.AutoScroll = true;
-            this.panel1.BackColor = System.Drawing.Color.LightGray;
+            this.panel1.BackColor = System.Drawing.Color.Linen;
             this.panel1.Controls.Add(this.pictureBox1);
             this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel1.Location = new System.Drawing.Point(0, 0);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(1118, 1050);
+            this.panel1.Size = new System.Drawing.Size(1150, 1106);
             this.panel1.TabIndex = 6;
             this.panel1.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.PictureBox1DoubleClick);
             // 
             // panel2
             // 
             this.panel2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(30)))), ((int)(((byte)(54)))));
+            this.panel2.Controls.Add(this.toolStrip7);
+            this.panel2.Controls.Add(this.toolStrip6);
+            this.panel2.Controls.Add(this.label4);
+            this.panel2.Controls.Add(this.textBox1);
+            this.panel2.Controls.Add(this.label5);
             this.panel2.Controls.Add(this.button7);
             this.panel2.Controls.Add(this.button6);
             this.panel2.Controls.Add(this.button5);
@@ -114,11 +126,64 @@
             this.panel2.Controls.Add(this.panel3);
             this.panel2.Controls.Add(this.button9);
             this.panel2.Dock = System.Windows.Forms.DockStyle.Right;
-            this.panel2.Location = new System.Drawing.Point(1118, 0);
+            this.panel2.Location = new System.Drawing.Point(1150, 0);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(210, 1050);
+            this.panel2.Size = new System.Drawing.Size(210, 1106);
             this.panel2.TabIndex = 7;
             this.panel2.MouseMove += new System.Windows.Forms.MouseEventHandler(this.CursorDefault);
+            // 
+            // toolStrip7
+            // 
+            this.toolStrip7.AutoSize = false;
+            this.toolStrip7.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(30)))), ((int)(((byte)(54)))));
+            this.toolStrip7.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.toolStrip7.ImageScalingSize = new System.Drawing.Size(24, 24);
+            this.toolStrip7.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripLabel3});
+            this.toolStrip7.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.VerticalStackWithOverflow;
+            this.toolStrip7.Location = new System.Drawing.Point(0, 835);
+            this.toolStrip7.Name = "toolStrip7";
+            this.toolStrip7.Size = new System.Drawing.Size(210, 60);
+            this.toolStrip7.TabIndex = 31;
+            this.toolStrip7.Text = "toolStrip7";
+            this.toolStrip7.MouseMove += new System.Windows.Forms.MouseEventHandler(this.CursorDefault);
+            // 
+            // toolStripLabel3
+            // 
+            this.toolStripLabel3.AutoSize = false;
+            this.toolStripLabel3.Font = new System.Drawing.Font("Comic Sans MS", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.toolStripLabel3.ForeColor = System.Drawing.Color.LightGray;
+            this.toolStripLabel3.Name = "toolStripLabel3";
+            this.toolStripLabel3.Size = new System.Drawing.Size(183, 26);
+            this.toolStripLabel3.Text = "Scale";
+            // 
+            // toolStrip6
+            // 
+            this.toolStrip6.AutoSize = false;
+            this.toolStrip6.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(30)))), ((int)(((byte)(54)))));
+            this.toolStrip6.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.toolStrip6.ImageScalingSize = new System.Drawing.Size(24, 24);
+            this.toolStrip6.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.VerticalStackWithOverflow;
+            this.toolStrip6.Location = new System.Drawing.Point(0, 895);
+            this.toolStrip6.Name = "toolStrip6";
+            this.toolStrip6.Size = new System.Drawing.Size(210, 10);
+            this.toolStrip6.TabIndex = 32;
+            this.toolStrip6.Text = "toolStrip6";
+            this.toolStrip6.MouseMove += new System.Windows.Forms.MouseEventHandler(this.CursorDefault);
+            // 
+            // textBox1
+            // 
+            this.textBox1.BackColor = System.Drawing.Color.White;
+            this.textBox1.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.textBox1.Font = new System.Drawing.Font("Comic Sans MS", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.textBox1.ForeColor = System.Drawing.Color.Black;
+            this.textBox1.Location = new System.Drawing.Point(0, 915);
+            this.textBox1.Name = "textBox1";
+            this.textBox1.Size = new System.Drawing.Size(210, 33);
+            this.textBox1.TabIndex = 30;
+            this.textBox1.Text = "3.45 μm";
+            this.textBox1.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.textBox1.KeyDown += new System.Windows.Forms.KeyEventHandler(this.ChangeScale);
             // 
             // button7
             // 
@@ -270,7 +335,7 @@
             this.toolStripButton1,
             this.toolStripButton2,
             this.scaleText});
-            this.toolStrip1.Location = new System.Drawing.Point(0, 902);
+            this.toolStrip1.Location = new System.Drawing.Point(0, 958);
             this.toolStrip1.Name = "toolStrip1";
             this.toolStrip1.RenderMode = System.Windows.Forms.ToolStripRenderMode.System;
             this.toolStrip1.Size = new System.Drawing.Size(210, 38);
@@ -325,7 +390,7 @@
             this.button4.ForeColor = System.Drawing.Color.LightGray;
             this.button4.Image = ((System.Drawing.Image)(resources.GetObject("button4.Image")));
             this.button4.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.button4.Location = new System.Drawing.Point(0, 940);
+            this.button4.Location = new System.Drawing.Point(0, 996);
             this.button4.Name = "button4";
             this.button4.Size = new System.Drawing.Size(210, 55);
             this.button4.TabIndex = 25;
@@ -496,7 +561,7 @@
             this.button9.ForeColor = System.Drawing.Color.LightGray;
             this.button9.Image = ((System.Drawing.Image)(resources.GetObject("button9.Image")));
             this.button9.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.button9.Location = new System.Drawing.Point(0, 995);
+            this.button9.Location = new System.Drawing.Point(0, 1051);
             this.button9.Name = "button9";
             this.button9.Size = new System.Drawing.Size(210, 55);
             this.button9.TabIndex = 29;
@@ -506,12 +571,30 @@
             this.button9.UseVisualStyleBackColor = true;
             this.button9.Click += new System.EventHandler(this.FormClose);
             // 
+            // label4
+            // 
+            this.label4.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.label4.Location = new System.Drawing.Point(0, 905);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(210, 10);
+            this.label4.TabIndex = 33;
+            this.label4.MouseMove += new System.Windows.Forms.MouseEventHandler(this.CursorDefault);
+            // 
+            // label5
+            // 
+            this.label5.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.label5.Location = new System.Drawing.Point(0, 948);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(210, 10);
+            this.label5.TabIndex = 34;
+            this.label5.MouseMove += new System.Windows.Forms.MouseEventHandler(this.CursorDefault);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(46)))), ((int)(((byte)(51)))), ((int)(((byte)(73)))));
-            this.ClientSize = new System.Drawing.Size(1328, 1050);
+            this.ClientSize = new System.Drawing.Size(1360, 1106);
             this.Controls.Add(this.panel1);
             this.Controls.Add(this.panel2);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
@@ -525,6 +608,8 @@
             this.panel1.ResumeLayout(false);
             this.panel2.ResumeLayout(false);
             this.panel2.PerformLayout();
+            this.toolStrip7.ResumeLayout(false);
+            this.toolStrip7.PerformLayout();
             this.toolStrip2.ResumeLayout(false);
             this.toolStrip2.PerformLayout();
             this.toolStrip1.ResumeLayout(false);
@@ -564,6 +649,12 @@
         private System.Windows.Forms.Button button8;
         private System.Windows.Forms.ToolStripButton toolStripButton1;
         private System.Windows.Forms.Button button9;
+        private System.Windows.Forms.ToolStrip toolStrip7;
+        private System.Windows.Forms.ToolStripLabel toolStripLabel3;
+        private System.Windows.Forms.ToolStrip toolStrip6;
+        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.Label label5;
     }
 }
 
