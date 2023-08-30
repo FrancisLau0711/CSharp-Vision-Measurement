@@ -42,6 +42,7 @@ namespace Vision_Measurement
         private static readonly Color subColor = Color.Yellow;
         private Image rawImage;
         private Image croppedImage;
+        private Image grayImage;
         readonly Pen regular = new Pen(mainColor, 1.5F);
         readonly Pen arrowHarrowT = new Pen(mainColor, 1.5F);
         readonly Pen arrowT = new Pen(mainColor, 1.5F);
@@ -248,12 +249,12 @@ namespace Vision_Measurement
             Bitmap bmp = ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
             string workingDirectory = Directory.GetCurrentDirectory();
             if (isGrayScale)
-            {
-                Bitmap gray_bmp = MakeGrayscale(bmp);
+            { 
+                grayImage = MakeGrayscale(bmp);
                 button3.Text = "BGR";
                 string path = Directory.GetParent(workingDirectory).Parent.FullName + @"\Icons\BGR Icon.png";
                 button3.Image = Image.FromFile(path);
-                pictureBox1.Image = gray_bmp;
+                pictureBox1.Image = grayImage;
             }
             else
             {
@@ -276,11 +277,8 @@ namespace Vision_Measurement
                 scale = 2.0F;
             }
             scaleText.Text = "       " + ((int)Math.Round(scale * 100)).ToString() + "%";
-            Bitmap bmp = ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
-            if(isGrayScale)
-            {
-                bmp = MakeGrayscale(bmp);
-            }
+            Bitmap bmp = isGrayScale ? ResizeImage(grayImage, (int)(grayImage.Width * scale), (int)(grayImage.Height * scale)) :
+                                       ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
             pictureBox1.Image = bmp;
             if (last_scale != scale)
             {
@@ -307,11 +305,8 @@ namespace Vision_Measurement
                 scale = 0.1F;
             }
             scaleText.Text = "       " + ((int)Math.Round(scale * 100)).ToString() + "%";
-            Bitmap bmp = ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
-            if (isGrayScale)
-            {
-                bmp = MakeGrayscale(bmp);
-            }
+            Bitmap bmp = isGrayScale ? ResizeImage(grayImage, (int)(grayImage.Width * scale), (int)(grayImage.Height * scale)) :
+                                       ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
             pictureBox1.Image = bmp;
             if (last_scale != scale)
             {
@@ -334,11 +329,8 @@ namespace Vision_Measurement
             }
             scale = 1.0F;
             scaleText.Text = "       100%";
-            Bitmap bmp = ResizeImage(rawImage, rawImage.Width, rawImage.Height);
-            if (isGrayScale)
-            {
-                bmp = MakeGrayscale(bmp);
-            }
+            Bitmap bmp = isGrayScale ? ResizeImage(grayImage, (int)(grayImage.Width * scale), (int)(grayImage.Height * scale)) : 
+                                       ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
             pictureBox1.Image = bmp;
             pictureBox1.Left = 0;
             pictureBox1.Top = 0;
