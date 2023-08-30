@@ -35,7 +35,9 @@
             this.toolStrip7 = new System.Windows.Forms.ToolStrip();
             this.toolStripLabel3 = new System.Windows.Forms.ToolStripLabel();
             this.toolStrip6 = new System.Windows.Forms.ToolStrip();
+            this.label4 = new System.Windows.Forms.Label();
             this.textBox1 = new System.Windows.Forms.TextBox();
+            this.label5 = new System.Windows.Forms.Label();
             this.button7 = new System.Windows.Forms.Button();
             this.button6 = new System.Windows.Forms.Button();
             this.button5 = new System.Windows.Forms.Button();
@@ -60,8 +62,6 @@
             this.panel3 = new System.Windows.Forms.Panel();
             this.label1 = new System.Windows.Forms.Label();
             this.button9 = new System.Windows.Forms.Button();
-            this.label4 = new System.Windows.Forms.Label();
-            this.label5 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.panel1.SuspendLayout();
             this.panel2.SuspendLayout();
@@ -171,6 +171,15 @@
             this.toolStrip6.Text = "toolStrip6";
             this.toolStrip6.MouseMove += new System.Windows.Forms.MouseEventHandler(this.CursorDefault);
             // 
+            // label4
+            // 
+            this.label4.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.label4.Location = new System.Drawing.Point(0, 905);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(210, 10);
+            this.label4.TabIndex = 33;
+            this.label4.MouseMove += new System.Windows.Forms.MouseEventHandler(this.CursorDefault);
+            // 
             // textBox1
             // 
             this.textBox1.BackColor = System.Drawing.Color.White;
@@ -184,6 +193,15 @@
             this.textBox1.Text = "3.45 μm";
             this.textBox1.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.textBox1.KeyDown += new System.Windows.Forms.KeyEventHandler(this.ChangeScale);
+            // 
+            // label5
+            // 
+            this.label5.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.label5.Location = new System.Drawing.Point(0, 948);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(210, 10);
+            this.label5.TabIndex = 34;
+            this.label5.MouseMove += new System.Windows.Forms.MouseEventHandler(this.CursorDefault);
             // 
             // button7
             // 
@@ -570,24 +588,6 @@
             this.button9.TextImageRelation = System.Windows.Forms.TextImageRelation.TextBeforeImage;
             this.button9.UseVisualStyleBackColor = true;
             this.button9.Click += new System.EventHandler(this.FormClose);
-            // 
-            // label4
-            // 
-            this.label4.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.label4.Location = new System.Drawing.Point(0, 905);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(210, 10);
-            this.label4.TabIndex = 33;
-            this.label4.MouseMove += new System.Windows.Forms.MouseEventHandler(this.CursorDefault);
-            // 
-            // label5
-            // 
-            this.label5.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.label5.Location = new System.Drawing.Point(0, 948);
-            this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(210, 10);
-            this.label5.TabIndex = 34;
-            this.label5.MouseMove += new System.Windows.Forms.MouseEventHandler(this.CursorDefault);
             // 
             // Form1
             // 

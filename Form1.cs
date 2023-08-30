@@ -494,17 +494,18 @@ namespace Vision_Measurement
                                 {
                                     case 0:
                                         len.startCoord = e.Location;
+                                        len.movingCoord = PointF.Empty;
                                         len.offsetCoord = PointF.Empty;
                                         len.endCoord = PointF.Empty;
                                         len.sequence++;
                                         break;
-
                                     case 1:
                                         len.endCoord = len.movingCoord;
                                         if (len.startCoord.X > len.endCoord.X)
                                         {
                                             (len.startCoord, len.endCoord) = (len.endCoord, len.startCoord);
                                         }
+                                        len.movingCoord = PointF.Empty;
                                         len.sequence++;
                                         break;
                                     case 2:
@@ -1348,7 +1349,7 @@ namespace Vision_Measurement
                     case EMeasurement.Length:
                         if (len.startCoord != PointF.Empty)
                         {
-                            if (len.endCoord == PointF.Empty)
+                            if (len.movingCoord != PointF.Empty && len.endCoord == PointF.Empty)
                             {
                                 string length = Math.Round(len.length * distPerPixel, displayDecimalPlaces).ToString() + "μm";
                                 SizeF size = g.MeasureString(length, font);
