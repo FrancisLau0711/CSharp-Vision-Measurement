@@ -1771,7 +1771,7 @@ namespace Vision_Measurement
             {
                 string temp = textBox1.Text.Replace("μm", "");
                 bool isValid = Double.TryParse(temp, out double dpp);
-                if(!isValid)
+                if(!isValid || dpp <= 0)
                 {
                     if (last_dpp != 0) distPerPixel = last_dpp;
                     else distPerPixel = 3.45;
@@ -2472,7 +2472,7 @@ namespace Vision_Measurement
             float m = (end.Y - start.Y) / (end.X - start.X);
             float new_m = -(1 / m);
             float c = end.Y - (new_m * end.X);
-            float d = ((end.Y + threshold) - c) / new_m;
+            float d = (end.Y + threshold - c) / new_m;
             newStart = new PointF { X = d , Y = end.Y + threshold };
             return newStart;
         }
