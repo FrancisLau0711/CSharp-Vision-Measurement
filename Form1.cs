@@ -27,6 +27,7 @@ namespace Vision_Measurement
         public const int measurementMaxCount = short.MaxValue;
         public const int displayDecimalPlaces = 3;
         private double distPerPixel = 3.45;
+        private double default_dpp = 3.45;
         private double last_dpp = 0;
         private const float crossScale = 5;
         private const float smallArcScale = 10;
@@ -74,15 +75,14 @@ namespace Vision_Measurement
             InitializeControl();
             InitializePen();
             rawImage = image.ToBitmap();
-            distPerPixel = ddp;
+            default_dpp = ddp;
             pictureBox1.Enabled = true;
-            pictureBox1.Size = rawImage.Size;
             pictureBox1.Image = rawImage;
         }
 
         private void InitializeControl()
         {
-            pictureBox1.SizeMode = PictureBoxSizeMode.AutoSize;
+            pictureBox1.Dock = DockStyle.Fill;
             comboBox1.DataSource = Enum.GetValues(typeof(EMeasurement));
             toolStrip1.Renderer = new RemoveBorder();
             toolStrip2.Renderer = new RemoveBorder();
@@ -116,11 +116,28 @@ namespace Vision_Measurement
             if (file.ShowDialog() == DialogResult.OK)
             {
                 string filepath = file.FileName;
-                if(File.Exists(filepath))
+                pictureBox1.Dock = DockStyle.Fill;
+                scale = 1.0F;
+                scaleText.Text = "       100%";
+                if (File.Exists(filepath))
                 {
+                    Image scaledImage;
                     rawImage = Image.FromFile(filepath);
-                    pictureBox1.Size = rawImage.Size;
+                    double aspectRatio = (double)rawImage.Width / (double)rawImage.Height;
+                    if (aspectRatio > 1)
+                    {
+                        scaledImage = ResizeImage(rawImage, pictureBox1.Width, (int)Math.Round((double)pictureBox1.Width / aspectRatio));
+                        distPerPixel = default_dpp * (double)rawImage.Width / (double)pictureBox1.Width;
+                    }
+                    else
+                    {
+                        scaledImage = ResizeImage(rawImage, (int)Math.Round((double)pictureBox1.Height * aspectRatio), pictureBox1.Height);
+                        distPerPixel = default_dpp * (double)rawImage.Height / (double)pictureBox1.Height;
+                    }
+                    textBox1.Text = Math.Round(distPerPixel, 3) + " μm";
+                    rawImage = scaledImage;
                     pictureBox1.Image = rawImage;
+                    pictureBox1.Size = rawImage.Size;
                 }
             }
             pictureBox1.Enabled = true;
@@ -188,7 +205,7 @@ namespace Vision_Measurement
 
         private void SaveCroppedImage(Image<Bgr, byte> img)
         {
-            croppedImage = cro.getCropImage(img, cro.startCoord, cro.endCoord);
+            croppedImage = cro.GetCropImage(img, cro.startCoord, cro.endCoord);
             SaveFileDialog file = new SaveFileDialog()
             {
                 Title = "Save Image",
@@ -277,10 +294,13 @@ namespace Vision_Measurement
             {
                 scale = 2.0F;
             }
+            panel1.AutoScroll = scale > 1.0F;
             scaleText.Text = "       " + ((int)Math.Round(scale * 100)).ToString() + "%";
             Bitmap bmp = isGrayScale ? ResizeImage(grayImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale)) :
                                        ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
             pictureBox1.Image = bmp;
+            pictureBox1.Size = bmp.Size;
+            pictureBox1.Dock = DockStyle.None;
             if (last_scale != scale)
             {
                 len.RescaleAll(scale);
@@ -305,10 +325,13 @@ namespace Vision_Measurement
             {
                 scale = 0.1F;
             }
+            panel1.AutoScroll = scale > 1.0F;
             scaleText.Text = "       " + ((int)Math.Round(scale * 100)).ToString() + "%";
             Bitmap bmp = isGrayScale ? ResizeImage(grayImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale)) :
                                        ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
             pictureBox1.Image = bmp;
+            pictureBox1.Size = bmp.Size;
+            pictureBox1.Dock = DockStyle.None;
             if (last_scale != scale)
             {
                 len.RescaleAll(scale);
@@ -331,9 +354,9 @@ namespace Vision_Measurement
             scale = 1.0F;
             scaleText.Text = "       100%";
             Image bmp = isGrayScale ? grayImage : rawImage;
+            panel1.AutoScroll = false;
             pictureBox1.Image = bmp;
-            pictureBox1.Left = 0;
-            pictureBox1.Top = 0;
+            pictureBox1.Dock = DockStyle.Fill;
             if (last_scale != scale)
             {
                 len.RescaleAll(scale);
@@ -378,14 +401,14 @@ namespace Vision_Measurement
                 isDrag = false;
                 isCrop = false;
                 button5.BackColor = Color.Green;
-                button6.BackColor = Color.FromArgb(24, 30, 54);
-                button7.BackColor = Color.FromArgb(24, 30, 54);
+                button6.BackColor = Color.FromArgb(61, 30, 54);
+                button7.BackColor = Color.FromArgb(62, 30, 54);
                 cro.RectClear();
                 pictureBox1.Invalidate();
             }
             else
             {
-                button5.BackColor = Color.FromArgb(24, 30, 54);
+                button5.BackColor = Color.FromArgb(60, 30, 54);
             }
         }
         private void DragImage(object sender, EventArgs e)
@@ -396,14 +419,14 @@ namespace Vision_Measurement
                 isRemove = false;
                 isCrop = false;
                 button6.BackColor = Color.Green;
-                button5.BackColor = Color.FromArgb(24, 30, 54);
-                button7.BackColor = Color.FromArgb(24, 30, 54);
+                button5.BackColor = Color.FromArgb(60, 30, 54);
+                button7.BackColor = Color.FromArgb(62, 30, 54);
                 cro.RectClear();
                 pictureBox1.Invalidate();
             }
             else
             {
-                button6.BackColor = Color.FromArgb(24, 30, 54);
+                button6.BackColor = Color.FromArgb(61, 30, 54);
             }
         }
 
@@ -415,12 +438,12 @@ namespace Vision_Measurement
                 isRemove = false;
                 isDrag = false;
                 button7.BackColor = Color.Green;
-                button5.BackColor = Color.FromArgb(24, 30, 54);
-                button6.BackColor = Color.FromArgb(24, 30, 54);
+                button5.BackColor = Color.FromArgb(60, 30, 54);
+                button6.BackColor = Color.FromArgb(61, 30, 54);
             }
             else
             {
-                button7.BackColor = Color.FromArgb(24, 30, 54);
+                button7.BackColor = Color.FromArgb(62, 30, 54);
                 cro.RectClear();
                 pictureBox1.Invalidate();
             }
@@ -1779,6 +1802,7 @@ namespace Vision_Measurement
                 else
                 {
                     distPerPixel = dpp;
+                    default_dpp = dpp;
                 }
                 last_dpp = distPerPixel;
                 textBox1.Text = distPerPixel + " μm";
@@ -2512,7 +2536,7 @@ namespace Vision_Measurement
         public PointF rawStartCoord = PointF.Empty;
         public PointF rawEndCoord = PointF.Empty;
 
-        public Image getCropImage(Image<Bgr, byte> img, PointF startCoord, PointF endCoord)
+        public Image GetCropImage(Image<Bgr, byte> img, PointF startCoord, PointF endCoord)
         {
             int width = (int)Math.Abs(movingCoord.X - startCoord.X) - 1;
             int height = (int)Math.Abs(movingCoord.Y - startCoord.Y) - 1;
