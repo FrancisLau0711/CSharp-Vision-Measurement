@@ -109,7 +109,8 @@ namespace Vision_Measurement
             {
                 Title = "Load Image",
                 DefaultExt = "png",
-                Filter = "PNG Image|*.png|Bitmap Image|*.bmp|JPEG Image|*.jpeg|JPG Image|*.jpg|All files|*.*",
+                //Filter = "PNG Image|*.png|Bitmap Image|*.bmp|JPEG Image|*.jpeg|JPG Image|*.jpg|All files|*.*",
+                Filter = "Image files|*.png;*.bmp;*.jpeg;*.jpg|All files|*.*",
                 FilterIndex = 1,
                 RestoreDirectory = true
             };
@@ -418,6 +419,8 @@ namespace Vision_Measurement
             {
                 isRemove = false;
                 isCrop = false;
+                panel1.AutoScroll = false;
+                pictureBox1.Dock = DockStyle.None;
                 button6.BackColor = Color.Green;
                 button5.BackColor = Color.FromArgb(60, 30, 54);
                 button7.BackColor = Color.FromArgb(62, 30, 54);
