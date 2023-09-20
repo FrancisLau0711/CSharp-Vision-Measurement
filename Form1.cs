@@ -44,7 +44,7 @@ namespace Vision_Measurement
         private Image rawImage;
         private Image croppedImage;
         private Image grayImage;
-        readonly Pen regular = new Pen(mainColor, 1.5F);
+        readonly Pen regular = new Pen(mainColor, 1.7F);
         readonly Pen arrowHarrowT = new Pen(mainColor, 1.5F);
         readonly Pen arrowT = new Pen(mainColor, 1.5F);
         readonly Pen dashedarrowH = new Pen(mainColor, 1.5F)
@@ -109,7 +109,6 @@ namespace Vision_Measurement
             {
                 Title = "Load Image",
                 DefaultExt = "png",
-                //Filter = "PNG Image|*.png|Bitmap Image|*.bmp|JPEG Image|*.jpeg|JPG Image|*.jpg|All files|*.*",
                 Filter = "Image files|*.png;*.bmp;*.jpeg;*.jpg|All files|*.*",
                 FilterIndex = 1,
                 RestoreDirectory = true
