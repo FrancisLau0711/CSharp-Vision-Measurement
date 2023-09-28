@@ -4,8 +4,12 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Numerics;
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Windows.Forms;
+using AForge.Imaging.Filters;
 using Emgu.CV;
+using Emgu.CV.CvEnum;
 using Emgu.CV.Structure;
 using Image = System.Drawing.Image;
 
@@ -27,8 +31,6 @@ namespace Vision_Measurement
         public const int measurementMaxCount = short.MaxValue;
         public const int displayDecimalPlaces = 3;
         private double distPerPixel = 3.45;
-        private double default_dpp = 3.45;
-        private double last_dpp = 0;
         private const float crossScale = 5;
         private const float smallArcScale = 10;
         private float scale = 1.0F;
@@ -37,6 +39,8 @@ namespace Vision_Measurement
         private bool isRemove = false;
         private bool isDrag = false;
         private bool isCrop = false;
+        private bool isShowLabel = true;
+        private bool isEdge = false;
         private bool dragging = false;
         private Point mouseLocation = new Point(0, 0);
         private static readonly Color mainColor = Color.Cyan;
@@ -44,7 +48,7 @@ namespace Vision_Measurement
         private Image rawImage;
         private Image croppedImage;
         private Image grayImage;
-        readonly Pen regular = new Pen(mainColor, 1.7F);
+        readonly Pen defaultPen = new Pen(mainColor, 1.7F);
         readonly Pen arrowHarrowT = new Pen(mainColor, 1.5F);
         readonly Pen arrowT = new Pen(mainColor, 1.5F);
         readonly Pen dashedarrowH = new Pen(mainColor, 1.5F)
@@ -60,6 +64,9 @@ namespace Vision_Measurement
         readonly Arc arc = new Arc();
         readonly Dimensioning dim = new Dimensioning();
         readonly CropImage cro = new CropImage();
+        readonly Param param = new Param();
+        readonly EdgeDetection edg = new EdgeDetection();
+        public readonly Labels lab = new Labels();
 
         public Form1()
         {
@@ -75,14 +82,14 @@ namespace Vision_Measurement
             InitializeControl();
             InitializePen();
             rawImage = image.ToBitmap();
-            default_dpp = ddp;
+            param.DistPerPixel = ddp;
+            label6.Text = ddp + "μm";
             pictureBox1.Enabled = true;
             pictureBox1.Image = rawImage;
         }
 
         private void InitializeControl()
         {
-            pictureBox1.Dock = DockStyle.Fill;
             comboBox1.DataSource = Enum.GetValues(typeof(EMeasurement));
             toolStrip1.Renderer = new RemoveBorder();
             toolStrip2.Renderer = new RemoveBorder();
@@ -108,7 +115,7 @@ namespace Vision_Measurement
             OpenFileDialog file = new OpenFileDialog()
             {
                 Title = "Load Image",
-                DefaultExt = "png",
+                //Filter = "PNG Image|*.png|Bitmap Image|*.bmp|JPEG Image|*.jpeg|JPG Image|*.jpg|All files|*.*",
                 Filter = "Image files|*.png;*.bmp;*.jpeg;*.jpg|All files|*.*",
                 FilterIndex = 1,
                 RestoreDirectory = true
@@ -127,21 +134,27 @@ namespace Vision_Measurement
                     if (aspectRatio > 1)
                     {
                         scaledImage = ResizeImage(rawImage, pictureBox1.Width, (int)Math.Round((double)pictureBox1.Width / aspectRatio));
-                        distPerPixel = default_dpp * (double)rawImage.Width / (double)pictureBox1.Width;
+                        distPerPixel = param.DistPerPixel * (double)rawImage.Width / (double)pictureBox1.Width;
                     }
                     else
                     {
                         scaledImage = ResizeImage(rawImage, (int)Math.Round((double)pictureBox1.Height * aspectRatio), pictureBox1.Height);
-                        distPerPixel = default_dpp * (double)rawImage.Height / (double)pictureBox1.Height;
+                        distPerPixel = param.DistPerPixel * (double)rawImage.Height / (double)pictureBox1.Height;
                     }
-                    textBox1.Text = Math.Round(distPerPixel, 3) + " μm";
+                    label6.Text = Math.Round(distPerPixel, 3) + " μm";
                     rawImage = scaledImage;
                     pictureBox1.Image = rawImage;
-                    pictureBox1.Size = rawImage.Size;
                 }
             }
             pictureBox1.Enabled = true;
+            len.LengthClear();
+            par.ParallelClear();
+            per.PerpendicularClear();
+            rad.RadiusClear();
+            dia.DiameterClear();
+            arc.ArcClear();
             cro.RectClear();
+            lab.LabelClear();
             pictureBox1.Invalidate();
         }
 
@@ -162,13 +175,20 @@ namespace Vision_Measurement
 
         private void SaveImage(object sender, EventArgs e)
         {
-            if(rawImage == null)
+            if (rawImage == null)
             {
                 return;
             }
             pictureBox1.Enabled = false;
             Bitmap image = new Bitmap(pictureBox1.ClientSize.Width, pictureBox1.ClientSize.Height);
             pictureBox1.DrawToBitmap(image, pictureBox1.ClientRectangle);
+            DateTime dateTime = DateTime.Now;
+            string time = dateTime.ToString();
+            Graphics g = Graphics.FromImage(image);
+            SizeF size = g.MeasureString(time, font);
+            PointF location = new PointF(pictureBox1.ClientSize.Width - (size.Width + 1), pictureBox1.ClientSize.Height - (size.Height + 1));
+            g.FillRectangle(Brushes.White, location.X, location.Y, size.Width, size.Height);
+            g.DrawString(time, font, Brushes.Black, location.X, location.Y);
             SaveFileDialog file = new SaveFileDialog()
             {
                 Title = "Save Image",
@@ -214,7 +234,7 @@ namespace Vision_Measurement
                 FilterIndex = 1,
                 RestoreDirectory = true
             };
-            if (file.ShowDialog() == DialogResult.OK)
+            if (file.ShowDialog() == DialogResult.OK && croppedImage != null)
             {
                 FileStream fs = (FileStream)file.OpenFile();
                 if (file.FileName != "")
@@ -263,10 +283,10 @@ namespace Vision_Measurement
                 return;
             }
             isGrayScale = !isGrayScale;
-            grayImage = MakeGrayscale((Bitmap)rawImage);
             string workingDirectory = Directory.GetCurrentDirectory();
             if (isGrayScale)
             {
+                grayImage = MakeGrayscale((Bitmap)rawImage);
                 Bitmap bmp = ResizeImage(grayImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
                 button3.Text = "BGR";
                 string path = Directory.GetParent(workingDirectory).Parent.FullName + @"\Icons\BGR Icon.png";
@@ -309,6 +329,7 @@ namespace Vision_Measurement
                 rad.RescaleAll(scale);
                 dia.RescaleAll(scale);
                 arc.RescaleAll(scale);
+                lab.RescaleAll(scale);
             }
             last_scale = scale;
             pictureBox1.Invalidate();
@@ -340,6 +361,7 @@ namespace Vision_Measurement
                 rad.RescaleAll(scale);
                 dia.RescaleAll(scale);
                 arc.RescaleAll(scale);
+                lab.RescaleAll(scale);
             }
             last_scale = scale;
             pictureBox1.Invalidate();
@@ -353,10 +375,12 @@ namespace Vision_Measurement
             }
             scale = 1.0F;
             scaleText.Text = "       100%";
-            Image bmp = isGrayScale ? grayImage : rawImage;
             panel1.AutoScroll = false;
+            Bitmap bmp = isGrayScale ? ResizeImage(grayImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale)) :
+                                       ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
             pictureBox1.Image = bmp;
-            pictureBox1.Dock = DockStyle.Fill;
+            pictureBox1.Size = bmp.Size;
+            pictureBox1.Location = new Point(0, 0);
             if (last_scale != scale)
             {
                 len.RescaleAll(scale);
@@ -365,6 +389,7 @@ namespace Vision_Measurement
                 rad.RescaleAll(scale);
                 dia.RescaleAll(scale);
                 arc.RescaleAll(scale);
+                lab.RescaleAll(scale);
             }
             last_scale = scale;
             pictureBox1.Invalidate();
@@ -396,7 +421,7 @@ namespace Vision_Measurement
         private void RemoveGraphics(object sender, EventArgs e)
         {
             isRemove = !isRemove;
-            if(isRemove)
+            if (isRemove)
             {
                 isDrag = false;
                 isCrop = false;
@@ -420,6 +445,11 @@ namespace Vision_Measurement
                 isCrop = false;
                 panel1.AutoScroll = false;
                 pictureBox1.Dock = DockStyle.None;
+                pictureBox1.Location = new Point(0, 0);
+                if(rawImage != null)
+                {
+                    pictureBox1.Size = rawImage.Size;
+                }
                 button6.BackColor = Color.Green;
                 button5.BackColor = Color.FromArgb(60, 30, 54);
                 button7.BackColor = Color.FromArgb(62, 30, 54);
@@ -457,10 +487,10 @@ namespace Vision_Measurement
             if (isDrag && e.Button == MouseButtons.Right)
             {
                 dragging = true;
-                mouseLocation = new Point{ X = e.X, Y = e.Y };
+                mouseLocation = new Point { X = e.X, Y = e.Y };
                 Cursor = Cursors.SizeAll;
             }
-            else if(isCrop && e.Button == MouseButtons.Right && pictureBox1.Image != null)
+            else if (isCrop && e.Button == MouseButtons.Right && pictureBox1.Image != null)
             {
                 cro.startCoord = e.Location;
                 cro.endCoord = PointF.Empty;
@@ -476,7 +506,7 @@ namespace Vision_Measurement
         {
             if (rawImage == null) { Cursor = Cursors.Default; return; }
             dragging = false;
-            if(cro.movingCoord != PointF.Empty)
+            if (cro.movingCoord != PointF.Empty)
             {
                 Cursor = Cursors.WaitCursor;
                 cro.endCoord = cro.movingCoord;
@@ -497,6 +527,17 @@ namespace Vision_Measurement
         private void PictureBox1MouseClick(object sender, MouseEventArgs e)
         {
             if (rawImage == null) { Cursor = Cursors.Default; return; }
+            if (lab.isPlacing) 
+            {
+                lab.RevertToOriginalSize(scale);
+                lab.comments.Add(lab.comment);
+                lab.rawCoords.Add(lab.coord);
+                lab.fontFamilies.Add(lab.fontFamily);
+                lab.rawFontsSize.Add(lab.fontSize);
+                lab.fontColors.Add(lab.fontColor);  
+                lab.isPlacing = false;
+                return;
+            }
             switch (e.Button)
             {
                 case MouseButtons.Left:
@@ -515,6 +556,21 @@ namespace Vision_Measurement
                                 {
                                     case 0:
                                         len.startCoord = e.Location;
+                                        if (isEdge)
+                                        {
+                                            PointF topLeft = new PointF(len.startCoord.X - 10, len.startCoord.Y - 10);
+                                            PointF bottomRight = new PointF(len.startCoord.X + 10, len.startCoord.Y + 10);
+                                            Bitmap bm = new Bitmap(pictureBox1.ClientSize.Width, pictureBox1.ClientSize.Height);
+                                            pictureBox1.DrawToBitmap(bm, pictureBox1.ClientRectangle);
+                                            Image<Bgr, byte> img = bm.ToImage<Bgr, byte>();
+                                            Image imgROI = cro.GetCropImage(img, topLeft, bottomRight);
+                                            PointF temp1 = edg.AutoFindEdge((Bitmap)imgROI);
+                                            if (temp1 != PointF.Empty)
+                                            {
+                                                len.startCoord.X = temp1.X + topLeft.X;
+                                                len.startCoord.Y = temp1.Y + topLeft.Y;
+                                            }
+                                        }
                                         len.movingCoord = PointF.Empty;
                                         len.offsetCoord = PointF.Empty;
                                         len.endCoord = PointF.Empty;
@@ -522,11 +578,27 @@ namespace Vision_Measurement
                                         break;
                                     case 1:
                                         len.endCoord = len.movingCoord;
+                                        if (isEdge)
+                                        {
+                                            PointF topLeft = new PointF(len.endCoord.X - 10, len.endCoord.Y - 10);
+                                            PointF bottomRight = new PointF(len.endCoord.X + 10, len.endCoord.Y + 10);
+                                            Bitmap bm = new Bitmap(pictureBox1.ClientSize.Width, pictureBox1.ClientSize.Height);
+                                            pictureBox1.DrawToBitmap(bm, pictureBox1.ClientRectangle);
+                                            Image<Bgr, byte> img = bm.ToImage<Bgr, byte>();
+                                            Image imgROI = cro.GetCropImage(img, topLeft, bottomRight);
+                                            PointF temp1 = edg.AutoFindEdge((Bitmap)imgROI);
+                                            if (temp1 != PointF.Empty)
+                                            {
+                                                len.endCoord.X = temp1.X + topLeft.X;
+                                                len.endCoord.Y = temp1.Y + topLeft.Y;
+                                            }
+                                            len.length = dim.GetDistance(len.startCoord, len.endCoord, scale);
+                                        }
+                                        len.movingCoord = PointF.Empty;
                                         if (len.startCoord.X > len.endCoord.X)
                                         {
                                             (len.startCoord, len.endCoord) = (len.endCoord, len.startCoord);
                                         }
-                                        len.movingCoord = PointF.Empty;
                                         len.sequence++;
                                         break;
                                     case 2:
@@ -641,40 +713,93 @@ namespace Vision_Measurement
                             if (len.removeSequence < 1)
                             {
                                 len.isRemoveLine = false;
-                                switch (rad.sequence)
+                                if(isEdge)
                                 {
-                                    case 0:
-                                        rad.offsetCoord = PointF.Empty;
-                                        rad.coord2 = PointF.Empty;
-                                        rad.startCoord = e.Location;
-                                        rad.sequence++;
-                                        break;
-                                    case 1:
-                                        rad.coord2 = e.Location;
-                                        rad.sequence++;
-                                        break;
-                                    case 2:
-                                        if (rad.coord3 != PointF.Empty)
-                                        {
-                                            rad.endCoord = rad.coord3;
+                                    switch (rad.sequence)
+                                    {
+                                        case 0:
+                                            rad.startCoord = e.Location;
                                             rad.sequence++;
-                                        }
-                                        break;
-                                    case 3:
-                                        rad.extendedCoord = rad.coord3;
-                                        rad.RevertToOriginalSize(scale);
-                                        rad.rawCircles.Add(rad.center);
-                                        rad.rawCircles.Add(rad.offsetCoord);
-                                        rad.rawCircles.Add(rad.extendedCoord);
-                                        rad.radiusCount++;
-                                        rad.finalRawRadius[rad.radiusCount - 1] = rad.radius / scale;
-                                        rad.sequence = 0;
-                                        rad.distance = 0;
-                                        rad.startCoord = PointF.Empty;
-                                        rad.coord3 = PointF.Empty;
-                                        rad.endCoord = PointF.Empty;
-                                        rad.extendedCoord = PointF.Empty;
-                                        break;
+                                            break;
+                                        case 1:
+                                            rad.endCoord = rad.coord2;
+                                            Bitmap bm = new Bitmap(pictureBox1.ClientSize.Width, pictureBox1.ClientSize.Height);
+                                            pictureBox1.DrawToBitmap(bm, pictureBox1.ClientRectangle);
+                                            Image<Bgr, byte> img = bm.ToImage<Bgr, byte>();
+                                            Image imgROI = cro.GetCropImage(img, rad.startCoord, rad.endCoord);
+                                            (rad.radius, rad.center) = edg.AutoFindCircle((Bitmap)imgROI);
+                                            if(rad.radius == 0 || rad.center == PointF.Empty)
+                                            {
+                                                rad.sequence = 0;
+                                                rad.distance = 0;
+                                                rad.startCoord = PointF.Empty;
+                                                rad.coord2 = PointF.Empty;
+                                                rad.coord3 = PointF.Empty;
+                                                rad.offsetCoord = PointF.Empty;
+                                                rad.endCoord = PointF.Empty;
+                                                rad.extendedCoord = PointF.Empty;
+                                                break;
+                                            }
+                                            rad.center.X += rad.startCoord.X;
+                                            rad.center.Y += rad.startCoord.Y;
+                                            rad.sequence++;
+                                            break;
+                                        case 2:
+                                            rad.extendedCoord = rad.coord3;
+                                            rad.RevertToOriginalSize(scale);
+                                            rad.rawCircles.Add(rad.center);
+                                            rad.rawCircles.Add(rad.offsetCoord);
+                                            rad.rawCircles.Add(rad.extendedCoord);
+                                            rad.radiusCount++;
+                                            rad.finalRawRadius[rad.radiusCount - 1] = rad.radius / scale;
+                                            rad.sequence = 0;
+                                            rad.distance = 0;
+                                            rad.startCoord = PointF.Empty;
+                                            rad.coord2 = PointF.Empty;
+                                            rad.coord3 = PointF.Empty;
+                                            rad.offsetCoord = PointF.Empty;
+                                            rad.endCoord = PointF.Empty;
+                                            rad.extendedCoord = PointF.Empty;
+                                            break;
+                                    }
+                                }
+                                else
+                                {
+                                    switch (rad.sequence)
+                                    {
+                                        case 0:
+                                            rad.offsetCoord = PointF.Empty;
+                                            rad.coord2 = PointF.Empty;
+                                            rad.startCoord = e.Location;
+                                            rad.sequence++;
+                                            break;
+                                        case 1:
+                                            rad.coord2 = e.Location;
+                                            rad.sequence++;
+                                            break;
+                                        case 2:
+                                            if (rad.coord3 != PointF.Empty)
+                                            {
+                                                rad.endCoord = rad.coord3;
+                                                rad.sequence++;
+                                            }
+                                            break;
+                                        case 3:
+                                            rad.extendedCoord = rad.coord3;
+                                            rad.RevertToOriginalSize(scale);
+                                            rad.rawCircles.Add(rad.center);
+                                            rad.rawCircles.Add(rad.offsetCoord);
+                                            rad.rawCircles.Add(rad.extendedCoord);
+                                            rad.radiusCount++;
+                                            rad.finalRawRadius[rad.radiusCount - 1] = rad.radius / scale;
+                                            rad.sequence = 0;
+                                            rad.distance = 0;
+                                            rad.startCoord = PointF.Empty;
+                                            rad.coord3 = PointF.Empty;
+                                            rad.endCoord = PointF.Empty;
+                                            rad.extendedCoord = PointF.Empty;
+                                            break;
+                                    }
                                 }
                             }
                             break;
@@ -687,40 +812,93 @@ namespace Vision_Measurement
                             if (len.removeSequence < 1)
                             {
                                 len.isRemoveLine = false;
-                                switch (dia.sequence)
+                                if (isEdge)
                                 {
-                                    case 0:
-                                        dia.offsetCoord = PointF.Empty;
-                                        dia.coord2 = PointF.Empty;
-                                        dia.startCoord = e.Location;
-                                        dia.sequence++;
-                                        break;
-                                    case 1:
-                                        dia.coord2 = e.Location;
-                                        dia.sequence++;
-                                        break;
-                                    case 2:
-                                        if (dia.coord3 != PointF.Empty)
-                                        {
-                                            dia.endCoord = dia.coord3;
+                                    switch (dia.sequence)
+                                    {
+                                        case 0:
+                                            dia.startCoord = e.Location;
                                             dia.sequence++;
-                                        }
-                                        break;
-                                    case 3:
-                                        dia.extendedCoord = dia.coord3;
-                                        dia.RevertToOriginalSize(scale);
-                                        dia.rawCircles.Add(dia.center);
-                                        dia.rawCircles.Add(dia.offsetCoord);
-                                        dia.rawCircles.Add(dia.extendedCoord);
-                                        dia.radiusCount++;
-                                        dia.finalRawRadius[dia.radiusCount - 1] = dia.radius / scale;
-                                        dia.sequence = 0;
-                                        dia.distance = 0;
-                                        dia.startCoord = PointF.Empty;
-                                        dia.coord3 = PointF.Empty;
-                                        dia.endCoord = PointF.Empty;
-                                        dia.extendedCoord = PointF.Empty;
-                                        break;
+                                            break;
+                                        case 1:
+                                            dia.endCoord = dia.coord2;
+                                            Bitmap bm = new Bitmap(pictureBox1.ClientSize.Width, pictureBox1.ClientSize.Height);
+                                            pictureBox1.DrawToBitmap(bm, pictureBox1.ClientRectangle);
+                                            Image<Bgr, byte> img = bm.ToImage<Bgr, byte>();
+                                            Image imgROI = cro.GetCropImage(img, dia.startCoord, dia.endCoord);
+                                            (dia.radius, dia.center) = edg.AutoFindCircle((Bitmap)imgROI);
+                                            if (dia.radius == 0 || dia.center == PointF.Empty)
+                                            {
+                                                dia.sequence = 0;
+                                                dia.distance = 0;
+                                                dia.startCoord = PointF.Empty;
+                                                dia.coord2 = PointF.Empty;
+                                                dia.coord3 = PointF.Empty;
+                                                dia.offsetCoord = PointF.Empty;
+                                                dia.endCoord = PointF.Empty;
+                                                dia.extendedCoord = PointF.Empty;
+                                                break;
+                                            }
+                                            dia.center.X += dia.startCoord.X;
+                                            dia.center.Y += dia.startCoord.Y;
+                                            dia.sequence++;
+                                            break;
+                                        case 2:
+                                            dia.extendedCoord = dia.coord3;
+                                            dia.RevertToOriginalSize(scale);
+                                            dia.rawCircles.Add(dia.center);
+                                            dia.rawCircles.Add(dia.offsetCoord);
+                                            dia.rawCircles.Add(dia.extendedCoord);
+                                            dia.radiusCount++;
+                                            dia.finalRawRadius[dia.radiusCount - 1] = dia.radius / scale;
+                                            dia.sequence = 0;
+                                            dia.distance = 0;
+                                            dia.startCoord = PointF.Empty;
+                                            dia.coord2 = PointF.Empty;
+                                            dia.coord3 = PointF.Empty;
+                                            dia.offsetCoord = PointF.Empty;
+                                            dia.endCoord = PointF.Empty;
+                                            dia.extendedCoord = PointF.Empty;
+                                            break;
+                                    }
+                                }
+                                else
+                                {
+                                    switch (dia.sequence)
+                                    {
+                                        case 0:
+                                            dia.offsetCoord = PointF.Empty;
+                                            dia.coord2 = PointF.Empty;
+                                            dia.startCoord = e.Location;
+                                            dia.sequence++;
+                                            break;
+                                        case 1:
+                                            dia.coord2 = e.Location;
+                                            dia.sequence++;
+                                            break;
+                                        case 2:
+                                            if (dia.coord3 != PointF.Empty)
+                                            {
+                                                dia.endCoord = dia.coord3;
+                                                dia.sequence++;
+                                            }
+                                            break;
+                                        case 3:
+                                            dia.extendedCoord = dia.coord3;
+                                            dia.RevertToOriginalSize(scale);
+                                            dia.rawCircles.Add(dia.center);
+                                            dia.rawCircles.Add(dia.offsetCoord);
+                                            dia.rawCircles.Add(dia.extendedCoord);
+                                            dia.radiusCount++;
+                                            dia.finalRawRadius[dia.radiusCount - 1] = dia.radius / scale;
+                                            dia.sequence = 0;
+                                            dia.distance = 0;
+                                            dia.startCoord = PointF.Empty;
+                                            dia.coord3 = PointF.Empty;
+                                            dia.endCoord = PointF.Empty;
+                                            dia.extendedCoord = PointF.Empty;
+                                            break;
+                                    }
                                 }
                             }
                             break;
@@ -863,6 +1041,28 @@ namespace Vision_Measurement
                                         j += 4;
                                     }
                                 }
+                                for(int i = 0; i < lab.comments.Count; i++)
+                                {
+                                    Graphics g = Graphics.FromImage(rawImage);
+                                    Font cFont = new Font(lab.fontFamilies[i], lab.fontsSize[i]);
+                                    SizeF size = g.MeasureString(lab.comments[i], cFont);
+                                    RectangleF rect = new RectangleF(lab.coords[i], size);
+                                    PointF[] pts = new PointF[]
+                                    {
+                                        new PointF(rect.X, rect.Y),
+                                        new PointF(rect.X, rect.Y + rect.Height),
+                                        new PointF(rect.X + rect.Width, rect.Y),
+                                        new PointF(rect.X + rect.Width, rect.Y + rect.Height),
+                                    };
+                                    bool isRectIntersect1 = len.CheckIntercept(len.startCoord, len.endCoord, pts[0], pts[1]);
+                                    bool isRectIntersect2 = len.CheckIntercept(len.startCoord, len.endCoord, pts[0], pts[2]);
+                                    bool isRectIntersect3 = len.CheckIntercept(len.startCoord, len.endCoord, pts[1], pts[3]);
+                                    bool isRectIntersect4 = len.CheckIntercept(len.startCoord, len.endCoord, pts[2], pts[3]);
+                                    if (isRectIntersect1 || isRectIntersect2 || isRectIntersect3 || isRectIntersect4)
+                                    {
+                                        lab.RemoveRect(i);
+                                    }
+                                }
                                 len.startCoord = PointF.Empty;
                                 len.endCoord = PointF.Empty;
                                 len.offsetCoord = PointF.Empty;
@@ -889,15 +1089,21 @@ namespace Vision_Measurement
         private void PictureBox1MouseMove(object sender, MouseEventArgs e)
         {
             if (rawImage == null) { Cursor = Cursors.Default; return; }
-            if (dragging && sender is Control c)
+            if (lab.isPlacing)
+            {
+                Cursor = Cursors.Cross;
+                lab.coord = e.Location;
+                pictureBox1.Invalidate();
+            }
+            else if (dragging && sender is Control c)
             {
                 c.Top += e.Y - mouseLocation.Y;
                 c.Left += e.X - mouseLocation.X;
             }
-            else if(isCrop && cro.startCoord != Point.Empty)
+            else if (isCrop && cro.startCoord != Point.Empty)
             {
                 double distance = dim.GetDistance(cro.startCoord, e.Location);
-                if(distance > 1)
+                if (distance > 1)
                 {
                     cro.movingCoord = e.Location;
                 }
@@ -1039,51 +1245,85 @@ namespace Vision_Measurement
                         }
                         break;
                     case EMeasurement.Radius:
-                        if (rad.startCoord != PointF.Empty)
+                        if (isEdge)
                         {
-                            if (rad.coord2 != PointF.Empty && rad.endCoord == PointF.Empty)
+                            if (rad.startCoord != Point.Empty)
                             {
-                                rad.distance = dim.GetDistance(rad.coord2, e.Location);
-                                if (rad.distance >= 1)
+                                rad.coord2 = e.Location;
+                                if (rad.endCoord != PointF.Empty && rad.extendedCoord == PointF.Empty)
                                 {
                                     rad.coord3 = e.Location;
-                                    rad.radius = rad.CircleEquation(rad.startCoord, rad.coord2, rad.coord3, crossScale + 1);
+                                    rad.distance = dim.GetDistance(rad.center, rad.coord3);
+                                    rad.offsetCoord.X = rad.center.X + (float)((rad.radius / rad.distance) * (rad.coord3.X - rad.center.X));
+                                    rad.offsetCoord.Y = rad.center.Y + (float)((rad.radius / rad.distance) * (rad.coord3.Y - rad.center.Y));
                                 }
                             }
-                            if (rad.endCoord != PointF.Empty && rad.extendedCoord == PointF.Empty)
-                            {
-                                rad.coord3 = e.Location;
-                                rad.distance = dim.GetDistance(rad.center, rad.coord3);
-                                rad.offsetCoord.X = rad.center.X + (float)((rad.radius / rad.distance) * (rad.coord3.X - rad.center.X));
-                                rad.offsetCoord.Y = rad.center.Y + (float)((rad.radius / rad.distance) * (rad.coord3.Y - rad.center.Y));
-                            }
                             pictureBox1.Invalidate();
+                        }
+                        else
+                        {
+                            if (rad.startCoord != PointF.Empty)
+                            {
+                                if (rad.coord2 != PointF.Empty && rad.endCoord == PointF.Empty)
+                                {
+                                    rad.distance = dim.GetDistance(rad.coord2, e.Location);
+                                    if (rad.distance >= 1)
+                                    {
+                                        rad.coord3 = e.Location;
+                                        rad.radius = rad.CircleEquation(rad.startCoord, rad.coord2, rad.coord3, crossScale + 1);
+                                    }
+                                }
+                                if (rad.endCoord != PointF.Empty && rad.extendedCoord == PointF.Empty)
+                                {
+                                    rad.coord3 = e.Location;
+                                    rad.distance = dim.GetDistance(rad.center, rad.coord3);
+                                    rad.offsetCoord.X = rad.center.X + (float)((rad.radius / rad.distance) * (rad.coord3.X - rad.center.X));
+                                    rad.offsetCoord.Y = rad.center.Y + (float)((rad.radius / rad.distance) * (rad.coord3.Y - rad.center.Y));
+                                }
+                                pictureBox1.Invalidate();
+                            }
                         }
                         break;
                     case EMeasurement.Diameter:
-
-                        if (dia.startCoord != PointF.Empty)
+                        if (isEdge)
                         {
-                            if (dia.coord2 != PointF.Empty && dia.endCoord == PointF.Empty)
+                            if (dia.startCoord != Point.Empty)
                             {
-                                dia.distance = dim.GetDistance(dia.coord2, e.Location);
-                                if (dia.distance >= 1)
+                                dia.coord2 = e.Location;
+                                if (dia.endCoord != PointF.Empty && dia.extendedCoord == PointF.Empty)
                                 {
                                     dia.coord3 = e.Location;
-                                    dia.radius = dia.CircleEquation(dia.startCoord, dia.coord2, dia.coord3, crossScale + 1);
+                                    dia.distance = dim.GetDistance(dia.center, dia.coord3);
+                                    dia.offsetCoord.X = dia.center.X + (float)((dia.radius / dia.distance) * (dia.coord3.X - dia.center.X));
+                                    dia.offsetCoord.Y = dia.center.Y + (float)((dia.radius / dia.distance) * (dia.coord3.Y - dia.center.Y));
                                 }
-                            }
-                            if (dia.endCoord != PointF.Empty && dia.extendedCoord == PointF.Empty)
-                            {
-                                dia.coord3 = e.Location;
-                                dia.distance = dim.GetDistance(dia.center, dia.coord3);
-                                dia.offsetCoord.X = dia.center.X + (float)((dia.radius / dia.distance) * (dia.coord3.X - dia.center.X));
-                                dia.offsetCoord.Y = dia.center.Y + (float)((dia.radius / dia.distance) * (dia.coord3.Y - dia.center.Y));
                             }
                             pictureBox1.Invalidate();
                         }
+                        else
+                        {
+                            if (dia.startCoord != PointF.Empty)
+                            {
+                                if (dia.coord2 != PointF.Empty && dia.endCoord == PointF.Empty)
+                                {
+                                    dia.distance = dim.GetDistance(dia.coord2, e.Location);
+                                    if (dia.distance >= 1)
+                                    {
+                                        dia.coord3 = e.Location;
+                                        dia.radius = dia.CircleEquation(dia.startCoord, dia.coord2, dia.coord3, crossScale + 1);
+                                    }
+                                }
+                                if (dia.endCoord != PointF.Empty && dia.extendedCoord == PointF.Empty)
+                                {
+                                    dia.coord3 = e.Location;
+                                    dia.distance = dim.GetDistance(dia.center, dia.coord3);
+                                    dia.offsetCoord.X = dia.center.X + (float)((dia.radius / dia.distance) * (dia.coord3.X - dia.center.X));
+                                    dia.offsetCoord.Y = dia.center.Y + (float)((dia.radius / dia.distance) * (dia.coord3.Y - dia.center.Y));
+                                }
+                                pictureBox1.Invalidate();
+                            }
+                        }
                         break;
-
                     case EMeasurement.Arc:
                         if (arc.startCoord != PointF.Empty)
                         {
@@ -1122,14 +1362,15 @@ namespace Vision_Measurement
             g.SmoothingMode = SmoothingMode.AntiAlias;
             SolidBrush sb_black = new SolidBrush(Color.Black);
             SolidBrush sb_white = new SolidBrush(Color.White);
-            //Length
-
+            SolidBrush sb_cyan = new SolidBrush(Color.FromArgb(128, Color.Cyan));
             len.RescaleAll(scale);
             par.RescaleAll(scale);
             per.RescaleAll(scale);
             rad.RescaleAll(scale);
             dia.RescaleAll(scale);
             arc.RescaleAll(scale);
+            lab.RescaleAll(scale);
+            //Length
             for (int i = 0; i < len.lines.Count; i += 5)
             {
                 string length = Math.Round(len.finalLength[i / 5] * distPerPixel, displayDecimalPlaces).ToString() + "μm";
@@ -1146,20 +1387,23 @@ namespace Vision_Measurement
                 }
                 else if (len.lines[i + 4].X > len.lines[i + 3].X && len.lines[i + 4].X > len.lines[i + 2].X)
                 {
-                    g.DrawLine(regular, len.lines[i + 2], len.lines[i + 3]);
+                    g.DrawLine(defaultPen, len.lines[i + 2], len.lines[i + 3]);
                     g.DrawLine(dashedarrowH, len.lines[i + 2], len.lines[i + 4]);
                     g.DrawLine(dashedarrowH, len.lines[i + 3], newExtendedCoord);
                 }
                 else
                 {
-                    g.DrawLine(regular, len.lines[i + 2], len.lines[i + 3]);
+                    g.DrawLine(defaultPen, len.lines[i + 2], len.lines[i + 3]);
                     g.DrawLine(dashedarrowH, len.lines[i + 3], len.lines[i + 4]);
                     g.DrawLine(dashedarrowH, len.lines[i + 2], newExtendedCoord);
                 }
                 g.DrawLine(dashedPen2, len.lines[i], len.lines[i + 3]);
                 g.DrawLine(dashedPen2, len.lines[i + 1], len.lines[i + 2]);
-                g.FillRectangle(sb_white, rectangle);
-                g.DrawString(length, font, sb_black, len.lines[i + 4]);
+                if (isShowLabel) 
+                {
+                    g.FillRectangle(sb_white, rectangle);
+                    g.DrawString(length, font, sb_black, len.lines[i + 4]); 
+                }
             }
 
             //Parallel
@@ -1172,25 +1416,28 @@ namespace Vision_Measurement
                 float dy = par.lines[i + 6].Y - par.lines[i + 5].Y;
                 PointF newExtendedCoord = new PointF { X = par.lines[i + 4].X - dx, Y = par.lines[i + 4].Y - dy };
                 g.DrawLine(Pens.Yellow, par.lines[i], par.lines[i + 1]);
-                g.DrawLine(regular, par.lines[i + 2], par.lines[i + 3]);
+                g.DrawLine(defaultPen, par.lines[i + 2], par.lines[i + 3]);
                 if (par.lines[i + 6].X >= par.lines[i + 4].X && par.lines[i + 6].X <= par.lines[i + 5].X)
                 {
                     g.DrawLine(arrowHarrowT, par.lines[i + 4], par.lines[i + 5]);
                 }
                 else if (par.lines[i + 6].X > par.lines[i + 4].X && par.lines[i + 6].X > par.lines[i + 5].X)
                 {
-                    g.DrawLine(regular, par.lines[i + 4], par.lines[i + 5]);
+                    g.DrawLine(defaultPen, par.lines[i + 4], par.lines[i + 5]);
                     g.DrawLine(dashedarrowH, par.lines[i + 5], par.lines[i + 6]);
                     g.DrawLine(dashedarrowH, par.lines[i + 4], newExtendedCoord);
                 }
                 else
                 {
-                    g.DrawLine(regular, par.lines[i + 4], par.lines[i + 5]);
+                    g.DrawLine(defaultPen, par.lines[i + 4], par.lines[i + 5]);
                     g.DrawLine(dashedarrowH, par.lines[i + 4], par.lines[i + 6]);
                     g.DrawLine(dashedarrowH, par.lines[i + 5], newExtendedCoord);
                 }
-                g.FillRectangle(sb_white, rectangle);
-                g.DrawString(perpendicularDistance, new Font("Comic Sans MS", 8), sb_black, par.lines[i + 6]);
+                if (isShowLabel)
+                {
+                    g.FillRectangle(sb_white, rectangle);
+                    g.DrawString(perpendicularDistance, font, sb_black, par.lines[i + 6]);
+                }
             }
 
             //Perpendicular
@@ -1221,7 +1468,7 @@ namespace Vision_Measurement
                         float dx = per.lines[i + 5].X - per.lines[i + 3].X;
                         float dy = per.lines[i + 5].Y - per.lines[i + 3].Y;
                         PointF newExtendedCoord = new PointF { X = per.lines[i + 4].X - dx, Y = per.lines[i + 4].Y - dy };
-                        g.DrawLine(regular, per.lines[i + 3], per.lines[i + 4]);
+                        g.DrawLine(defaultPen, per.lines[i + 3], per.lines[i + 4]);
                         g.DrawLine(dashedarrowH, per.lines[i + 3], per.lines[i + 5]);
                         g.DrawLine(dashedarrowH, per.lines[i + 4], newExtendedCoord);
                     }
@@ -1230,7 +1477,7 @@ namespace Vision_Measurement
                         float dx = per.lines[i + 5].X - per.lines[i + 4].X;
                         float dy = per.lines[i + 5].Y - per.lines[i + 4].Y;
                         PointF newExtendedCoord = new PointF { X = per.lines[i + 3].X - dx, Y = per.lines[i + 3].Y - dy };
-                        g.DrawLine(regular, per.lines[i + 3], per.lines[i + 4]);
+                        g.DrawLine(defaultPen, per.lines[i + 3], per.lines[i + 4]);
                         g.DrawLine(dashedarrowH, per.lines[i + 4], per.lines[i + 5]);
                         g.DrawLine(dashedarrowH, per.lines[i + 3], newExtendedCoord);
                     }
@@ -1242,7 +1489,7 @@ namespace Vision_Measurement
                         float dx = per.lines[i + 5].X - per.lines[i + 4].X;
                         float dy = per.lines[i + 5].Y - per.lines[i + 4].Y;
                         PointF newExtendedCoord = new PointF { X = per.lines[i + 3].X - dx, Y = per.lines[i + 3].Y - dy };
-                        g.DrawLine(regular, per.lines[i + 3], per.lines[i + 4]);
+                        g.DrawLine(defaultPen, per.lines[i + 3], per.lines[i + 4]);
                         g.DrawLine(dashedarrowH, per.lines[i + 4], per.lines[i + 5]);
                         g.DrawLine(dashedarrowH, per.lines[i + 3], newExtendedCoord);
                     }
@@ -1251,7 +1498,7 @@ namespace Vision_Measurement
                         float dx = per.lines[i + 5].X - per.lines[i + 3].X;
                         float dy = per.lines[i + 5].Y - per.lines[i + 3].Y;
                         PointF newExtendedCoord = new PointF { X = per.lines[i + 4].X - dx, Y = per.lines[i + 4].Y - dy };
-                        g.DrawLine(regular, per.lines[i + 3], per.lines[i + 4]);
+                        g.DrawLine(defaultPen, per.lines[i + 3], per.lines[i + 4]);
                         g.DrawLine(dashedarrowH, per.lines[i + 3], per.lines[i + 5]);
                         g.DrawLine(dashedarrowH, per.lines[i + 4], newExtendedCoord);
                     }
@@ -1259,12 +1506,14 @@ namespace Vision_Measurement
                 g.DrawLine(Pens.Yellow, per.lines[i], per.lines[i + 1]);
                 g.DrawLine(dashedPen2, per.lines[i + 2], per.lines[i + 4]);
                 g.DrawLine(dashedPen2, per.lines[i + 2], per.lines[i + 6]);
-                g.FillRectangle(sb_white, rectangle);
-                g.FillRectangle(sb_white, rectangle2);
-                g.DrawString(perpendicularDistance, new Font("Comic Sans MS", 8), sb_black, per.lines[i + 5]);
-                g.DrawString(parallelDistance, new Font("Comic Sans MS", 8), sb_black, labelPosition);
+                if (isShowLabel)
+                {
+                    g.FillRectangle(sb_white, rectangle);
+                    g.FillRectangle(sb_white, rectangle2);
+                    g.DrawString(perpendicularDistance, font, sb_black, per.lines[i + 5]);
+                    g.DrawString(parallelDistance, font, sb_black, labelPosition);
+                }
             }
-
             //Radius
             for (int i = 0; i < rad.circles.Count; i += 3)
             {
@@ -1279,15 +1528,18 @@ namespace Vision_Measurement
                 if (d > rad.finalRadius[i / 3])
                 {
                     g.DrawLine(dashedarrowH, rad.circles[i + 1], rad.circles[i + 2]);
-                    g.DrawLine(regular, rad.circles[i], rad.circles[i + 1]);
+                    g.DrawLine(defaultPen, rad.circles[i], rad.circles[i + 1]);
                 }
                 else
                 {
                     g.DrawLine(arrowHarrowT, rad.circles[i], rad.circles[i + 1]);
                 }
-                g.DrawEllipse(regular, leftCornerX, leftCornerY, axisLength, axisLength);
-                g.FillRectangle(sb_white, rectangle);
-                g.DrawString(radius, new Font("Comic Sans MS", 8), sb_black, rad.circles[i + 2]);
+                g.DrawEllipse(defaultPen, leftCornerX, leftCornerY, axisLength, axisLength);
+                if (isShowLabel)
+                {
+                    g.FillRectangle(sb_white, rectangle);
+                    g.DrawString(radius, font, sb_black, rad.circles[i + 2]);
+                }
             }
 
             //Diameter
@@ -1306,16 +1558,19 @@ namespace Vision_Measurement
                 if (d > dia.finalRadius[i / 3])
                 {
                     g.DrawLine(dashedarrowH, dia.circles[i + 1], dia.circles[i + 2]);
-                    g.DrawLine(regular, extendedCoord, dia.circles[i + 1]);
+                    g.DrawLine(defaultPen, extendedCoord, dia.circles[i + 1]);
                     g.DrawLine(dashedarrowH, extendedCoord, extendedCoord2);
                 }
                 else
                 {
                     g.DrawLine(arrowHarrowT, extendedCoord, dia.circles[i + 1]);
                 }
-                g.DrawEllipse(regular, leftCornerX, leftCornerY, axisLength, axisLength);
-                g.FillRectangle(sb_white, rectangle);
-                g.DrawString(radius, new Font("Comic Sans MS", 8), sb_black, dia.circles[i + 2]);
+                g.DrawEllipse(defaultPen, leftCornerX, leftCornerY, axisLength, axisLength);
+                if (isShowLabel)
+                {
+                    g.FillRectangle(sb_white, rectangle);
+                    g.DrawString(radius, font, sb_black, dia.circles[i + 2]);
+                }
             }
 
             // Arc
@@ -1335,27 +1590,49 @@ namespace Vision_Measurement
                 RectangleF rectangle2 = new RectangleF(arc.circles[i], size2);
                 DrawCross(ref g, arc.circles[i]);
                 g.DrawArc(arrowHarrowT, leftCornerX, leftCornerY, axisLength, axisLength, (float)arc.finalAngle[i / 2], (float)arc.finalAngle[(i / 2) + 1]);
-                g.DrawArc(regular, sleftCornerX, sleftCornerY, saxisLength, saxisLength, (float)arc.finalAngle[i / 2], (float)arc.finalAngle[(i / 2) + 1]);
+                g.DrawArc(defaultPen, sleftCornerX, sleftCornerY, saxisLength, saxisLength, (float)arc.finalAngle[i / 2], (float)arc.finalAngle[(i / 2) + 1]);
                 g.DrawLine(dashedPen2, arc.circles[i], arc.circles[i + 1]);
                 g.DrawLine(dashedPen2, arc.circles[i], arc.circles[i + 2]);
-                g.FillRectangle(sb_white, rectangle);
-                g.FillRectangle(sb_white, rectangle2);
-                g.DrawString(radius, new Font("Comic Sans MS", 8), sb_black, arc.circles[i + 3]);
-                g.DrawString(sweepAngle, new Font("Comic Sans MS", 8), sb_black, arc.circles[i]);
+                if (isShowLabel)
+                {
+                    g.FillRectangle(sb_white, rectangle);
+                    g.FillRectangle(sb_white, rectangle2);
+                    g.DrawString(radius, font, sb_black, arc.circles[i + 3]);
+                    g.DrawString(sweepAngle, font, sb_black, arc.circles[i]);
+                }
             }
-            if(isCrop && cro.movingCoord != PointF.Empty && cro.endCoord == PointF.Empty)
+
+            // Lab
+            for(int i = 0; i < lab.comments.Count; i++)
+            {
+                SolidBrush sb = new SolidBrush(Color.FromName(lab.fontColors[i]));
+                Font cFont = new Font(lab.fontFamilies[i], lab.fontsSize[i]);
+                SizeF size = g.MeasureString(lab.comments[i], cFont);
+                g.FillRectangle(sb_white, lab.coords[i].X, lab.coords[i].Y, size.Width, size.Height);
+                g.DrawString(lab.comments[i], cFont, sb, lab.coords[i]);
+            }
+
+            if (isCrop && cro.movingCoord != PointF.Empty && cro.endCoord == PointF.Empty)
             {
                 float width = Math.Abs(cro.movingCoord.X - cro.startCoord.X);
                 float height = Math.Abs(cro.movingCoord.Y - cro.startCoord.Y);
                 g.DrawRectangle(dashedPen2, Math.Min(cro.movingCoord.X, cro.startCoord.X), Math.Min(cro.movingCoord.Y, cro.startCoord.Y), width, height);
                 return;
             }
-            else if(isCrop && cro.endCoord != PointF.Empty)
+            else if (isCrop && cro.endCoord != PointF.Empty)
             {
                 float width = Math.Abs(cro.rawEndCoord.X * scale - cro.rawStartCoord.X * scale);
                 float height = Math.Abs(cro.rawEndCoord.Y * scale - cro.rawStartCoord.Y * scale);
                 g.DrawRectangle(dashedPen2, Math.Min(cro.rawEndCoord.X, cro.rawStartCoord.X) * scale, Math.Min(cro.rawEndCoord.Y, cro.rawStartCoord.Y) * scale, width, height);
                 return;
+            }
+            else if (lab.isPlacing)
+            {
+                SolidBrush sb = new SolidBrush(Color.FromName(lab.fontColor));
+                Font cFont = new Font(lab.fontFamily, lab.fontSize);
+                SizeF size = g.MeasureString(lab.comment, cFont);
+                g.FillRectangle(sb_white, lab.coord.X, lab.coord.Y, size.Width, size.Height);
+                g.DrawString(lab.comment, cFont, sb, new PointF(lab.coord.X, lab.coord.Y));
             }
             if (len.isRemoveLine)
             {
@@ -1384,8 +1661,11 @@ namespace Vision_Measurement
                                 DrawCross(ref g, len.startCoord);
                                 DrawCross(ref g, len.movingCoord);
                                 g.DrawLine(arrowHarrowT, len.startCoord, len.movingCoord);
-                                g.FillRectangle(sb_white, rectangle);
-                                g.DrawString(length, new Font("Comic Sans MS", 8), sb_black, label_position);
+                                if (isShowLabel)
+                                {
+                                    g.FillRectangle(sb_white, rectangle);
+                                    g.DrawString(length, font, sb_black, label_position);
+                                }
                             }
                         }
                         if (len.endCoord != PointF.Empty && len.offsetCoord == PointF.Empty)
@@ -1404,27 +1684,30 @@ namespace Vision_Measurement
                             }
                             else if (len.extendedCoord.X > len.newEndCoord.X && len.extendedCoord.X > len.movingCoord2.X)
                             {
-                                g.DrawLine(regular, len.movingCoord2, len.newEndCoord);
+                                g.DrawLine(defaultPen, len.movingCoord2, len.newEndCoord);
                                 g.DrawLine(dashedarrowH, len.movingCoord2, len.extendedCoord);
                                 g.DrawLine(dashedarrowH, len.newEndCoord, newExtendedCoord);
                             }
                             else
                             {
-                                g.DrawLine(regular, len.movingCoord2, len.newEndCoord);
+                                g.DrawLine(defaultPen, len.movingCoord2, len.newEndCoord);
                                 g.DrawLine(dashedarrowH, len.newEndCoord, len.extendedCoord);
                                 g.DrawLine(dashedarrowH, len.movingCoord2, newExtendedCoord);
                             }
                             g.DrawLine(dashedPen2, len.startCoord, len.newEndCoord);
                             g.DrawLine(dashedPen2, len.endCoord, len.movingCoord2);
-                            g.FillRectangle(sb_white, rectangle);
-                            g.DrawString(length, new Font("Comic Sans MS", 8), sb_black, len.extendedCoord);
+                            if (isShowLabel)
+                            {
+                                g.FillRectangle(sb_white, rectangle);
+                                g.DrawString(length, font, sb_black, len.extendedCoord);
+                            }
                         }
                         break;
                     case EMeasurement.Parallel:
                         if (par.movingCoord != PointF.Empty && par.movingCoord2 == PointF.Empty)
                         {
                             DrawCross(ref g, par.startCoord);
-                            g.DrawLine(regular, par.startCoord, par.movingCoord);
+                            g.DrawLine(defaultPen, par.startCoord, par.movingCoord);
                         }
                         if (par.movingCoord2 != PointF.Empty && par.offsetCoord == PointF.Empty)
                         {
@@ -1439,8 +1722,11 @@ namespace Vision_Measurement
                             g.DrawLine(arrowHarrowT, par.movingCoord2, par.perpendicularCoord);
                             g.DrawLine(Pens.Yellow, par.epolateCoord1, par.epolateCoord2);
                             g.DrawLine(dashedPen2, par.epolateCoord3, par.epolateCoord4);
-                            g.FillRectangle(sb_white, rectangle);
-                            g.DrawString(perpendicularDistance, new Font("Comic Sans MS", 8), sb_black, label_position);
+                            if (isShowLabel)
+                            {
+                                g.FillRectangle(sb_white, rectangle);
+                                g.DrawString(perpendicularDistance, font, sb_black, label_position);
+                            }
                         }
                         if (par.offsetCoord != PointF.Empty && par.extendedCoord == PointF.Empty)
                         {
@@ -1456,27 +1742,30 @@ namespace Vision_Measurement
                             }
                             else if (par.movingCoord2.X > par.perpendicularCoord.X && par.movingCoord2.X > par.perpendicularCoord2.X)
                             {
-                                g.DrawLine(regular, par.perpendicularCoord, par.perpendicularCoord2);
+                                g.DrawLine(defaultPen, par.perpendicularCoord, par.perpendicularCoord2);
                                 g.DrawLine(dashedarrowH, par.perpendicularCoord2, par.movingCoord2);
                                 g.DrawLine(dashedarrowH, par.perpendicularCoord, newExtendedCoord);
                             }
                             else
                             {
-                                g.DrawLine(regular, par.perpendicularCoord, par.perpendicularCoord2);
+                                g.DrawLine(defaultPen, par.perpendicularCoord, par.perpendicularCoord2);
                                 g.DrawLine(dashedarrowH, par.perpendicularCoord, par.movingCoord2);
                                 g.DrawLine(dashedarrowH, par.perpendicularCoord2, newExtendedCoord);
                             }
                             g.DrawLine(Pens.Yellow, par.epolateCoord1, par.epolateCoord2);
-                            g.DrawLine(regular, par.epolateCoord3, par.epolateCoord4);
-                            g.FillRectangle(sb_white, rectangle);
-                            g.DrawString(perpendicularDistance, new Font("Comic Sans MS", 8), sb_black, par.movingCoord2);
+                            g.DrawLine(defaultPen, par.epolateCoord3, par.epolateCoord4);
+                            if (isShowLabel)
+                            {
+                                g.FillRectangle(sb_white, rectangle);
+                                g.DrawString(perpendicularDistance, font, sb_black, par.movingCoord2);
+                            }
                         }
                         break;
                     case EMeasurement.Perpendicular:
                         if (per.movingCoord != PointF.Empty && per.movingCoord2 == PointF.Empty)
                         {
                             DrawCross(ref g, per.startCoord);
-                            g.DrawLine(regular, per.startCoord, per.movingCoord);
+                            g.DrawLine(defaultPen, per.startCoord, per.movingCoord);
                         }
                         if (per.movingCoord2 != PointF.Empty && per.offsetCoord == PointF.Empty)
                         {
@@ -1491,8 +1780,11 @@ namespace Vision_Measurement
                             DrawCross(ref g, per.movingCoord2);
                             g.DrawLine(arrowHarrowT, per.movingCoord2, per.perpendicularCoord);
                             g.DrawLine(Pens.Yellow, per.epolateCoord1, per.epolateCoord2);
-                            g.FillRectangle(sb_white, rectangle);
-                            g.DrawString(perpendicularDistance, new Font("Comic Sans MS", 8), sb_black, label_position);
+                            if (isShowLabel)
+                            {
+                                g.FillRectangle(sb_white, rectangle);
+                                g.DrawString(perpendicularDistance, font, sb_black, label_position);
+                            }
                         }
                         if (per.offsetCoord != PointF.Empty && per.extendedCoord == PointF.Empty)
                         {
@@ -1521,7 +1813,7 @@ namespace Vision_Measurement
                                     float dx = per.movingCoord2.X - per.perpendicularCoord.X;
                                     float dy = per.movingCoord2.Y - per.perpendicularCoord.Y;
                                     PointF newExtendedCoord = new PointF { X = per.perpendicularCoord2.X - dx, Y = per.perpendicularCoord2.Y - dy };
-                                    g.DrawLine(regular, per.perpendicularCoord, per.perpendicularCoord2);
+                                    g.DrawLine(defaultPen, per.perpendicularCoord, per.perpendicularCoord2);
                                     g.DrawLine(dashedarrowH, per.perpendicularCoord, per.movingCoord2);
                                     g.DrawLine(dashedarrowH, per.perpendicularCoord2, newExtendedCoord);
                                 }
@@ -1530,7 +1822,7 @@ namespace Vision_Measurement
                                     float dx = per.movingCoord2.X - per.perpendicularCoord2.X;
                                     float dy = per.movingCoord2.Y - per.perpendicularCoord2.Y;
                                     PointF newExtendedCoord = new PointF { X = per.perpendicularCoord.X - dx, Y = per.perpendicularCoord.Y - dy };
-                                    g.DrawLine(regular, per.perpendicularCoord, per.perpendicularCoord2);
+                                    g.DrawLine(defaultPen, per.perpendicularCoord, per.perpendicularCoord2);
                                     g.DrawLine(dashedarrowH, per.perpendicularCoord2, per.movingCoord2);
                                     g.DrawLine(dashedarrowH, per.perpendicularCoord, newExtendedCoord);
                                 }
@@ -1542,7 +1834,7 @@ namespace Vision_Measurement
                                     float dx = per.movingCoord2.X - per.perpendicularCoord2.X;
                                     float dy = per.movingCoord2.Y - per.perpendicularCoord2.Y;
                                     PointF newExtendedCoord = new PointF { X = per.perpendicularCoord.X - dx, Y = per.perpendicularCoord.Y - dy };
-                                    g.DrawLine(regular, per.perpendicularCoord, per.perpendicularCoord2);
+                                    g.DrawLine(defaultPen, per.perpendicularCoord, per.perpendicularCoord2);
                                     g.DrawLine(dashedarrowH, per.perpendicularCoord2, per.movingCoord2);
                                     g.DrawLine(dashedarrowH, per.perpendicularCoord, newExtendedCoord);
                                 }
@@ -1551,7 +1843,7 @@ namespace Vision_Measurement
                                     float dx = per.movingCoord2.X - per.perpendicularCoord.X;
                                     float dy = per.movingCoord2.Y - per.perpendicularCoord.Y;
                                     PointF newExtendedCoord = new PointF { X = per.perpendicularCoord2.X - dx, Y = per.perpendicularCoord2.Y - dy };
-                                    g.DrawLine(regular, per.perpendicularCoord, per.perpendicularCoord2);
+                                    g.DrawLine(defaultPen, per.perpendicularCoord, per.perpendicularCoord2);
                                     g.DrawLine(dashedarrowH, per.perpendicularCoord, per.movingCoord2);
                                     g.DrawLine(dashedarrowH, per.perpendicularCoord2, newExtendedCoord);
                                 }
@@ -1559,10 +1851,13 @@ namespace Vision_Measurement
                             g.DrawLine(Pens.Yellow, per.epolateCoord1, per.epolateCoord2);
                             g.DrawLine(dashedPen2, per.offsetCoord, per.perpendicularCoord2);
                             g.DrawLine(dashedPen2, per.offsetCoord, per.endCoord);
-                            g.FillRectangle(sb_white, rectangle);
-                            g.FillRectangle(sb_white, rectangle2);
-                            g.DrawString(perpendicularDistance, new Font("Comic Sans MS", 8), sb_black, per.movingCoord2);
-                            g.DrawString(parallelDistance, new Font("Comic Sans MS", 8), sb_black, labelPosition);
+                            if (isShowLabel)
+                            {
+                                g.FillRectangle(sb_white, rectangle);
+                                g.FillRectangle(sb_white, rectangle2);
+                                g.DrawString(perpendicularDistance, font, sb_black, per.movingCoord2);
+                                g.DrawString(parallelDistance, font, sb_black, labelPosition);
+                            }
                         }
                         break;
                     case EMeasurement.Radius:
@@ -1570,29 +1865,15 @@ namespace Vision_Measurement
                         {
                             DrawCross(ref g, rad.startCoord);
                         }
-                        if (rad.distance >= 1)
+                        if (isEdge)
                         {
-                            if (rad.endCoord == PointF.Empty && rad.offsetCoord == PointF.Empty)
+                            if(rad.endCoord == PointF.Empty && rad.coord2 != PointF.Empty && rad.offsetCoord == PointF.Empty)
                             {
-                                string radius = Math.Round(rad.radius / scale * distPerPixel, displayDecimalPlaces).ToString() + "μm";
-                                float leftCornerX = rad.center.X - rad.radius;
-                                float leftCornerY = rad.center.Y - rad.radius;
-                                float axisLength = (float)(2 * rad.radius);
-                                PointF label_position = new PointF
-                                {
-                                    X = rad.center.X + (rad.coord3.X - rad.center.X) / 2,
-                                    Y = rad.center.Y + (rad.coord3.Y - rad.center.Y) / 2
-                                };
-                                SizeF size = g.MeasureString(radius, font);
-                                RectangleF rectangle = new RectangleF(label_position, size);
-                                DrawCross(ref g, rad.startCoord);
-                                DrawCross(ref g, rad.coord2);
-                                DrawCross(ref g, rad.coord3);
-                                DrawCross(ref g, rad.center);
-                                g.DrawLine(arrowT, rad.center, rad.coord3);
-                                g.DrawEllipse(regular, leftCornerX, leftCornerY, axisLength, axisLength);
-                                g.FillRectangle(sb_white, rectangle);
-                                g.DrawString(radius, new Font("Comic Sans MS", 8), sb_black, label_position);
+                                float width = Math.Abs(rad.coord2.X - rad.startCoord.X);
+                                float height = Math.Abs(rad.coord2.Y - rad.startCoord.Y);
+                                RectangleF rect = new RectangleF(Math.Min(rad.startCoord.X, rad.coord2.X), Math.Min(rad.startCoord.Y, rad.coord2.Y), width, height);
+                                g.DrawRectangle(defaultPen, Rectangle.Round(rect));
+                                g.FillRectangle(sb_cyan, rect);
                             }
                             if (rad.offsetCoord != PointF.Empty)
                             {
@@ -1606,15 +1887,74 @@ namespace Vision_Measurement
                                 if (rad.distance > rad.radius)
                                 {
                                     g.DrawLine(dashedarrowH, rad.offsetCoord, rad.coord3);
-                                    g.DrawLine(regular, rad.center, rad.offsetCoord);
+                                    g.DrawLine(defaultPen, rad.center, rad.offsetCoord);
                                 }
                                 else
                                 {
                                     g.DrawLine(arrowHarrowT, rad.center, rad.offsetCoord);
                                 }
-                                g.DrawEllipse(regular, leftCornerX, leftCornerY, axisLength, axisLength);
-                                g.FillRectangle(sb_white, rectangle);
-                                g.DrawString(radius, new Font("Comic Sans MS", 8), sb_black, rad.coord3);
+                                g.DrawEllipse(defaultPen, leftCornerX, leftCornerY, axisLength, axisLength);
+                                if (isShowLabel)
+                                {
+                                    g.FillRectangle(sb_white, rectangle);
+                                    g.DrawString(radius, font, sb_black, rad.coord3);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (rad.distance >= 1)
+                            {
+                                if (rad.endCoord == PointF.Empty && rad.offsetCoord == PointF.Empty)
+                                {
+                                    string radius = Math.Round(rad.radius / scale * distPerPixel, displayDecimalPlaces).ToString() + "μm";
+                                    float leftCornerX = rad.center.X - rad.radius;
+                                    float leftCornerY = rad.center.Y - rad.radius;
+                                    float axisLength = (float)(2 * rad.radius);
+                                    PointF label_position = new PointF
+                                    {
+                                        X = rad.center.X + (rad.coord3.X - rad.center.X) / 2,
+                                        Y = rad.center.Y + (rad.coord3.Y - rad.center.Y) / 2
+                                    };
+                                    SizeF size = g.MeasureString(radius, font);
+                                    RectangleF rectangle = new RectangleF(label_position, size);
+                                    DrawCross(ref g, rad.startCoord);
+                                    DrawCross(ref g, rad.coord2);
+                                    DrawCross(ref g, rad.coord3);
+                                    DrawCross(ref g, rad.center);
+                                    g.DrawLine(arrowT, rad.center, rad.coord3);
+                                    g.DrawEllipse(defaultPen, leftCornerX, leftCornerY, axisLength, axisLength);
+                                    if (isShowLabel)
+                                    {
+                                        g.FillRectangle(sb_white, rectangle);
+                                        g.DrawString(radius, font, sb_black, label_position);
+                                    }
+                                }
+                                if (rad.offsetCoord != PointF.Empty)
+                                {
+                                    string radius = Math.Round(rad.radius / scale * distPerPixel, displayDecimalPlaces).ToString() + "μm";
+                                    float leftCornerX = rad.center.X - rad.radius;
+                                    float leftCornerY = rad.center.Y - rad.radius;
+                                    float axisLength = (float)(2 * rad.radius);
+                                    SizeF size = g.MeasureString(radius, font);
+                                    RectangleF rectangle = new RectangleF(rad.coord3, size);
+                                    DrawCross(ref g, rad.center);
+                                    if (rad.distance > rad.radius)
+                                    {
+                                        g.DrawLine(dashedarrowH, rad.offsetCoord, rad.coord3);
+                                        g.DrawLine(defaultPen, rad.center, rad.offsetCoord);
+                                    }
+                                    else
+                                    {
+                                        g.DrawLine(arrowHarrowT, rad.center, rad.offsetCoord);
+                                    }
+                                    g.DrawEllipse(defaultPen, leftCornerX, leftCornerY, axisLength, axisLength);
+                                    if (isShowLabel)
+                                    {
+                                        g.FillRectangle(sb_white, rectangle);
+                                        g.DrawString(radius, font, sb_black, rad.coord3);
+                                    }
+                                }
                             }
                         }
                         break;
@@ -1623,30 +1963,15 @@ namespace Vision_Measurement
                         {
                             DrawCross(ref g, dia.startCoord);
                         }
-                        if (dia.distance >= 1)
+                        if (isEdge)
                         {
-                            if (dia.endCoord == PointF.Empty && dia.offsetCoord == PointF.Empty)
+                            if (dia.endCoord == PointF.Empty && dia.coord2 != PointF.Empty && dia.offsetCoord == PointF.Empty)
                             {
-                                string radius = Math.Round(2 * (dia.radius / scale) * distPerPixel, displayDecimalPlaces).ToString() + "μm";
-                                float leftCornerX = dia.center.X - dia.radius;
-                                float leftCornerY = dia.center.Y - dia.radius;
-                                float axisLength = (float)(2 * dia.radius);
-                                PointF label_position = new PointF
-                                {
-                                    X = dia.center.X + (dia.coord3.X - dia.center.X) / 2,
-                                    Y = dia.center.Y + (dia.coord3.Y - dia.center.Y) / 2
-                                };
-                                PointF extendedPoint = dia.ExtendLine(dia.coord3, dia.center);
-                                SizeF size = g.MeasureString(radius, font);
-                                RectangleF rectangle = new RectangleF(label_position, size);
-                                DrawCross(ref g, dia.startCoord);
-                                DrawCross(ref g, dia.coord2);
-                                DrawCross(ref g, dia.coord3);
-                                DrawCross(ref g, dia.center);
-                                g.DrawLine(arrowHarrowT, dia.coord3, extendedPoint);
-                                g.DrawEllipse(regular, leftCornerX, leftCornerY, axisLength, axisLength);
-                                g.FillRectangle(sb_white, rectangle);
-                                g.DrawString(radius, new Font("Comic Sans MS", 8), sb_black, label_position);
+                                float width = Math.Abs(dia.coord2.X - dia.startCoord.X);
+                                float height = Math.Abs(dia.coord2.Y - dia.startCoord.Y);
+                                RectangleF rect = new RectangleF(Math.Min(dia.startCoord.X, dia.coord2.X), Math.Min(dia.startCoord.Y, dia.coord2.Y), width, height);
+                                g.DrawRectangle(defaultPen, Rectangle.Round(rect));
+                                g.FillRectangle(sb_cyan, rect);
                             }
                             if (dia.offsetCoord != PointF.Empty)
                             {
@@ -1662,16 +1987,79 @@ namespace Vision_Measurement
                                 if (dia.distance > dia.radius)
                                 {
                                     g.DrawLine(dashedarrowH, dia.offsetCoord, dia.coord3);
-                                    g.DrawLine(regular, extendedCoord, dia.offsetCoord);
+                                    g.DrawLine(defaultPen, extendedCoord, dia.offsetCoord);
                                     g.DrawLine(dashedarrowH, extendedCoord, extendedCoord2);
                                 }
                                 else
                                 {
                                     g.DrawLine(arrowHarrowT, extendedCoord, dia.offsetCoord);
                                 }
-                                g.DrawEllipse(regular, leftCornerX, leftCornerY, axisLength, axisLength);
-                                g.FillRectangle(sb_white, rectangle);
-                                g.DrawString(radius, new Font("Comic Sans MS", 8), sb_black, dia.coord3);
+                                g.DrawEllipse(defaultPen, leftCornerX, leftCornerY, axisLength, axisLength);
+                                if (isShowLabel)
+                                {
+                                    g.FillRectangle(sb_white, rectangle);
+                                    g.DrawString(radius, font, sb_black, dia.coord3);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (dia.distance >= 1)
+                            {
+                                if (dia.endCoord == PointF.Empty && dia.offsetCoord == PointF.Empty)
+                                {
+                                    string radius = Math.Round(2 * (dia.radius / scale) * distPerPixel, displayDecimalPlaces).ToString() + "μm";
+                                    float leftCornerX = dia.center.X - dia.radius;
+                                    float leftCornerY = dia.center.Y - dia.radius;
+                                    float axisLength = (float)(2 * dia.radius);
+                                    PointF label_position = new PointF
+                                    {
+                                        X = dia.center.X + (dia.coord3.X - dia.center.X) / 2,
+                                        Y = dia.center.Y + (dia.coord3.Y - dia.center.Y) / 2
+                                    };
+                                    PointF extendedPoint = dia.ExtendLine(dia.coord3, dia.center);
+                                    SizeF size = g.MeasureString(radius, font);
+                                    RectangleF rectangle = new RectangleF(label_position, size);
+                                    DrawCross(ref g, dia.startCoord);
+                                    DrawCross(ref g, dia.coord2);
+                                    DrawCross(ref g, dia.coord3);
+                                    DrawCross(ref g, dia.center);
+                                    g.DrawLine(arrowHarrowT, dia.coord3, extendedPoint);
+                                    g.DrawEllipse(defaultPen, leftCornerX, leftCornerY, axisLength, axisLength);
+                                    if (isShowLabel)
+                                    {
+                                        g.FillRectangle(sb_white, rectangle);
+                                        g.DrawString(radius, font, sb_black, label_position);
+                                    }
+                                }
+                                if (dia.offsetCoord != PointF.Empty)
+                                {
+                                    string radius = Math.Round(2 * (dia.radius / scale) * distPerPixel, displayDecimalPlaces).ToString() + "μm";
+                                    float leftCornerX = dia.center.X - (float)dia.radius;
+                                    float leftCornerY = dia.center.Y - (float)dia.radius;
+                                    float axisLength = (float)(2 * dia.radius);
+                                    PointF extendedCoord = dia.ExtendLine(dia.offsetCoord, dia.center);
+                                    PointF extendedCoord2 = dia.ExtendLine(dia.coord3, dia.center);
+                                    SizeF size = g.MeasureString(radius, font);
+                                    RectangleF rectangle = new RectangleF(dia.coord3, size);
+                                    DrawCross(ref g, dia.center);
+                                    if (dia.distance > dia.radius)
+                                    {
+                                        g.DrawLine(dashedarrowH, dia.offsetCoord, dia.coord3);
+                                        g.DrawLine(defaultPen, extendedCoord, dia.offsetCoord);
+                                        g.DrawLine(dashedarrowH, extendedCoord, extendedCoord2);
+                                    }
+                                    else
+                                    {
+                                        g.DrawLine(arrowHarrowT, extendedCoord, dia.offsetCoord);
+                                    }
+                                    g.DrawEllipse(defaultPen, leftCornerX, leftCornerY, axisLength, axisLength);
+                                    if (isShowLabel)
+                                    {
+                                        g.FillRectangle(sb_white, rectangle);
+                                        g.DrawString(radius, font, sb_black, dia.coord3);
+                                    }
+                                }
                             }
                         }
                         break;
@@ -1701,13 +2089,16 @@ namespace Vision_Measurement
                                 DrawCross(ref g, arc.coord3);
                                 DrawCross(ref g, arc.center);
                                 g.DrawArc(arrowHarrowT, leftCornerX, leftCornerY, axisLength, axisLength, (float)arc.startAngle, (float)arc.sweepAngle);
-                                g.DrawArc(regular, sleftCornerX, sleftCornerY, saxisLength, saxisLength, (float)arc.startAngle, (float)arc.sweepAngle);
+                                g.DrawArc(defaultPen, sleftCornerX, sleftCornerY, saxisLength, saxisLength, (float)arc.startAngle, (float)arc.sweepAngle);
                                 g.DrawLine(dashedPen2, arc.center, arc.startCoord);
                                 g.DrawLine(dashedPen2, arc.center, arc.coord3);
-                                g.FillRectangle(sb_white, rectangle);
-                                g.FillRectangle(sb_white, rectangle2);
-                                g.DrawString(radius, new Font("Comic Sans MS", 8), sb_black, arc.midCoord);
-                                g.DrawString(sweepAngle, new Font("Comic Sans MS", 8), sb_black, arc.center);
+                                if (isShowLabel)
+                                {
+                                    g.FillRectangle(sb_white, rectangle);
+                                    g.FillRectangle(sb_white, rectangle2);
+                                    g.DrawString(radius, font, sb_black, arc.midCoord);
+                                    g.DrawString(sweepAngle, font, sb_black, arc.center);
+                                }
                             }
                         }
                         break;
@@ -1717,8 +2108,8 @@ namespace Vision_Measurement
 
         private void DrawCross(ref Graphics g, PointF point)
         {
-            g.DrawLine(regular, point.X - crossScale, point.Y - crossScale, point.X + crossScale, point.Y + crossScale);
-            g.DrawLine(regular, point.X - crossScale, point.Y + crossScale, point.X + crossScale, point.Y - crossScale);
+            g.DrawLine(defaultPen, point.X - crossScale, point.Y - crossScale, point.X + crossScale, point.Y + crossScale);
+            g.DrawLine(defaultPen, point.X - crossScale, point.Y + crossScale, point.X + crossScale, point.Y - crossScale);
         }
 
         private void ClearAllClick(object sender, EventArgs e)
@@ -1730,6 +2121,7 @@ namespace Vision_Measurement
             dia.DiameterClear();
             arc.ArcClear();
             cro.RectClear();
+            lab.LabelClear();
             pictureBox1.Invalidate();
         }
 
@@ -1740,7 +2132,7 @@ namespace Vision_Measurement
 
         private void PictureBox1DoubleClick(object sender, MouseEventArgs e)
         {
-            if(e.Button == MouseButtons.Right && isDrag)
+            if (e.Button == MouseButtons.Right && isDrag)
             {
                 if (rawImage == null)
                 {
@@ -1750,6 +2142,7 @@ namespace Vision_Measurement
                 scaleText.Text = "     " + ((int)Math.Round(scale * 100)).ToString() + "%";
                 Bitmap bmp = ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
                 pictureBox1.Image = bmp;
+                pictureBox1.Size = bmp.Size;
                 pictureBox1.Left = 0;
                 pictureBox1.Top = 0;
                 if (last_scale != scale)
@@ -1782,7 +2175,17 @@ namespace Vision_Measurement
                 case Keys.S:
                     pictureBox1.Top -= pictureBox1.Height / 10;
                     break;
+                case Keys.X:
+                    isShowLabel = false;
+                    pictureBox1.Invalidate();
+                    break;
             }
+        }
+
+        private void Form1KeyUp(object sender, KeyEventArgs e)
+        {
+            isShowLabel = true;
+            pictureBox1.Invalidate();
         }
 
         private void FormClose(object sender, EventArgs e)
@@ -1790,25 +2193,34 @@ namespace Vision_Measurement
             Application.Exit();
         }
 
-        private void ChangeScale(object sender, KeyEventArgs e)
+        private void SettingsClick(object sender, EventArgs e)
         {
-            if(e.KeyCode == Keys.Enter)
+            new Settings(param).ShowDialog();
+            ChangeSettings();
+        }
+
+        private void ChangeSettings()
+        {
+            distPerPixel = param.DistPerPixel;
+            label6.Text = distPerPixel + " μm";
+        }
+
+        private void CommentClick(object sender, EventArgs e)
+        {
+            new Comment(this).ShowDialog();
+        }
+
+        private void EdgeDetect(object sender, EventArgs e)
+        {
+            isEdge = !isEdge;
+            rad.StopMeasurement();
+            if (isEdge)
             {
-                string temp = textBox1.Text.Replace("μm", "");
-                bool isValid = Double.TryParse(temp, out double dpp);
-                if(!isValid || dpp <= 0)
-                {
-                    if (last_dpp != 0) distPerPixel = last_dpp;
-                    else distPerPixel = 3.45;
-                }
-                else
-                {
-                    distPerPixel = dpp;
-                    default_dpp = dpp;
-                }
-                last_dpp = distPerPixel;
-                textBox1.Text = distPerPixel + " μm";
-                pictureBox1.Invalidate();
+                button12.BackColor = Color.Green;
+            }
+            else
+            {
+                button12.BackColor = Color.FromArgb(51, 30, 54);
             }
         }
     }
@@ -2161,7 +2573,7 @@ namespace Vision_Measurement
             }
             for (int i = 0; i < rawCircles.Count; i++)
             {
-                circles[i] = new PointF { X = (int)(rawCircles[i].X * scale), Y = (int)(rawCircles[i].Y * scale) };
+                circles[i] = new PointF { X = rawCircles[i].X * scale, Y = rawCircles[i].Y * scale };
             }
             for (int i = 0; i < finalRawRadius.Length; i++)
             {
@@ -2229,24 +2641,31 @@ namespace Vision_Measurement
             double l = tempDim.GetDistance(lineStart, lineEnd);
             double d1 = tempDim.GetDistance(lineStart, center);
             double d2 = tempDim.GetDistance(lineEnd, center);
-            if (d1 < radius || d2 < radius)
+            if ((d1 < radius && d2 > radius) || (d1 > radius && d2 < radius))
             {
-                return false;
+                return true;
             }
-            double theta = Math.Acos((Math.Pow(d1, 2) + Math.Pow(l, 2) - Math.Pow(d2, 2)) / (2 * d1 * l));
-            double theta2 = Math.Acos((Math.Pow(d2, 2) + Math.Pow(l, 2) - Math.Pow(d1, 2)) / (2 * d2 * l));
-            if (theta >= (Math.PI / 2) || theta2 >= (Math.PI / 2))
+            else if (d1 > radius || d2 > radius)
             {
-                return false;
-            }
-            double d = d1 * Math.Sin(theta);
-            if (d > radius)
-            {
-                return false;
+                double theta = Math.Acos((Math.Pow(d1, 2) + Math.Pow(l, 2) - Math.Pow(d2, 2)) / (2 * d1 * l));
+                double theta2 = Math.Acos((Math.Pow(d2, 2) + Math.Pow(l, 2) - Math.Pow(d1, 2)) / (2 * d2 * l));
+                if (theta >= (Math.PI / 2) || theta2 >= (Math.PI / 2))
+                {
+                    return false;
+                }
+                double d = d1 * Math.Sin(theta);
+                if (d > radius)
+                {
+                    return false;
+                }
+                else
+                {
+                    return true;
+                }
             }
             else
             {
-                return true;
+                return false;
             }
         }
 
@@ -2332,8 +2751,6 @@ namespace Vision_Measurement
 
         public override float CircleEquation(PointF coord1, PointF coord2, PointF coord3, float threshold)
         {
-            double stopAngle;
-            double midAngle;
             double x1 = coord1.X;
             double y1 = coord1.Y;
             double x2 = coord2.X;
@@ -2351,7 +2768,7 @@ namespace Vision_Measurement
             double s2 = Math.Pow(x2, 2) + Math.Pow(y2, 2);
             double s3 = Math.Pow(x3, 2) + Math.Pow(y3, 2);
 
-            double f = ((x12) * (s3 - s1) - (x13) * (s2 - s1)) / (2 * ((x12 * y13) - (y12 * x13)));
+            double f = (x12 * (s3 - s1) - x13 * (s2 - s1)) / (2 * ((x12 * y13) - (y12 * x13)));
             double g = (s3 - s1 - 2 * f * y13) / (2 * x13);
 
             double c = -s1 - 2 * g * x1 - 2 * f * y1;
@@ -2369,17 +2786,17 @@ namespace Vision_Measurement
             float tempRadius = (float)Math.Sqrt(sr);
             center = new PointF { X = (float)h, Y = (float)k };
             startAngle = Math.Atan2(y1 - center.Y, x1 - center.X) * 180 / Math.PI;
-            stopAngle = Math.Atan2(y3 - center.Y, x3 - center.X) * 180 / Math.PI;
+            double stopAngle = Math.Atan2(y3 - center.Y, x3 - center.X) * 180 / Math.PI;
             sweepAngle = stopAngle - startAngle;
             if (sweepAngle < 0)
             {
                 sweepAngle += 360;
             }
-            midAngle = (sweepAngle) / 2 + startAngle;
+            double midAngle = (sweepAngle) / 2 + startAngle;
             midCoord = new PointF
             {
-                X = (float)(Math.Round(center.X + (float)(tempRadius * Math.Cos(midAngle * Math.PI / 180)), 2)),
-                Y = (float)(Math.Round(center.Y + (float)(tempRadius * Math.Sin(midAngle * Math.PI / 180)), 2))
+                X = (float)Math.Round(center.X + (float)(tempRadius * Math.Cos(midAngle * Math.PI / 180)), 2),
+                Y = (float)Math.Round(center.Y + (float)(tempRadius * Math.Sin(midAngle * Math.PI / 180)), 2)
             };
             return (float)Math.Sqrt(sr);
         }
@@ -2499,7 +2916,7 @@ namespace Vision_Measurement
             float new_m = -(1 / m);
             float c = end.Y - (new_m * end.X);
             float d = (end.Y + threshold - c) / new_m;
-            newStart = new PointF { X = d , Y = end.Y + threshold };
+            newStart = new PointF { X = d, Y = end.Y + threshold };
             return newStart;
         }
 
@@ -2540,9 +2957,13 @@ namespace Vision_Measurement
 
         public Image GetCropImage(Image<Bgr, byte> img, PointF startCoord, PointF endCoord)
         {
-            int width = (int)Math.Abs(movingCoord.X - startCoord.X) - 1;
-            int height = (int)Math.Abs(movingCoord.Y - startCoord.Y) - 1;
+            int width = (int)Math.Abs(endCoord.X - startCoord.X) - 1;
+            int height = (int)Math.Abs(endCoord.Y - startCoord.Y) - 1;
             Rectangle rect = new Rectangle((int)Math.Min(startCoord.X + 1, endCoord.X + 1), (int)Math.Min(startCoord.Y + 1, endCoord.Y + 1), width, height);
+            if(width < 2 || height < 2)
+            {
+                return null;
+            }
             img.ROI = rect;
             Image<Bgr, byte> imgROI = img.Copy();
             img.ROI = Rectangle.Empty;
@@ -2564,6 +2985,147 @@ namespace Vision_Measurement
             rawStartCoord.Y = startCoord.Y / scale;
             rawEndCoord.X = endCoord.X / scale;
             rawEndCoord.Y = endCoord.Y / scale;
+        }
+    }
+
+    public class Labels
+    {
+        public List<string> comments = new List<string>();
+        public List<PointF> coords = new List<PointF>();
+        public List<PointF> rawCoords = new List<PointF>();
+        public List<string> fontFamilies = new List<string>();
+        public List<string> fontColors = new List<string>();
+        public List<int> fontsSize = new List<int>();
+        public List<int> rawFontsSize = new List<int>();
+        public bool isPlacing = new bool();
+        public string comment = null;
+        public string fontFamily = "Comic Sans MS";
+        public string fontColor = "Black";
+        public int fontSize = 20;
+        public PointF coord = PointF.Empty;
+
+        public void RevertToOriginalSize(float scale)
+        {
+            fontSize = (int)((float)fontSize / scale);
+            coord.X /= scale;
+            coord.Y /= scale;
+        }
+
+        public void RescaleAll(float scale)
+        {
+            coords.Clear();
+            fontsSize.Clear();
+            for (int i = 0; i < rawCoords.Count; i++)
+            {
+                coords.Add(new PointF { X = 0, Y = 0 });
+                fontsSize.Add(0);
+            }
+            for (int i = 0; i < rawCoords.Count; i++)
+            {
+                coords[i] = new PointF { X = rawCoords[i].X * scale, Y = rawCoords[i].Y * scale };
+                fontsSize[i] = (int)((float) rawFontsSize[i] * scale);
+            }
+        }
+
+        public void LabelClear()
+        {
+            fontFamilies.Clear();
+            fontColors.Clear();
+            fontsSize.Clear();
+            comments.Clear();
+            coords.Clear();
+            comment = null;
+            fontSize = 20;
+            fontFamily = "Comic Sans MS";
+            fontColor = "Black";
+            coord = PointF.Empty;
+            isPlacing = false;
+        }
+
+        public void RemoveRect(int index)
+        {
+            comments.RemoveAt(index);
+            coords.RemoveAt(index);
+            fontFamilies.RemoveAt(index);
+            fontsSize.RemoveAt(index);
+            fontColors.RemoveAt(index);
+        }
+    }
+
+    public class EdgeDetection
+    {
+        public (float, PointF) AutoFindCircle(Bitmap imgROI)
+        {
+            if(imgROI == null)
+            {
+                return (0, PointF.Empty);
+            }
+            Image<Gray, byte> img = imgROI.ToImage<Gray, byte>();
+            CircleF[] circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, 10, 400, 25, (int)(0.75 * (img.Height/2)), (int)(1.33 * (img.Height/2)));
+            if(circles.Length == 0)
+            {
+                return (0, PointF.Empty);
+            }
+            float radius = 0;
+            int j = 0;
+            for(int i = 0; i < circles.Length; i++)
+            {
+                float temp = circles[i].Radius;
+                if(temp > radius && temp < img.Height / 2)
+                {
+                    radius = temp;
+                    j = i;
+                }
+            }
+            return (radius, circles[j].Center);
+        }
+
+        public PointF AutoFindEdge(Bitmap imgROI, double sigma = 0.33)
+        {
+            Dimensioning tempDim = new Dimensioning();
+            if(imgROI == null)
+            {
+                return PointF.Empty;
+            }
+            Image<Gray, byte> img = imgROI.ToImage<Bgr, byte>().Sub(new Bgr(Color.Cyan)).Convert<Gray, byte>();
+            double median = CalcMedian(img);
+            double lower = Math.Max(0, (1 - sigma) * median);
+            double upper = Math.Min(255, (1 + sigma) * median);
+            img = img.Canny(upper, lower);
+            LineSegment2D[] lines = CvInvoke.HoughLinesP(img, 1, Math.PI/180, 2);
+            if (lines.Length == 0)
+            {
+                return PointF.Empty;
+            }
+            double distance = 0;
+            int j = 0;
+            for (int i = 0; i < lines.Length; i++)
+            {
+                double temp = tempDim.GetDistance(lines[i].P1, lines[i].P2);
+                if(temp > distance && temp < img.Height)
+                {
+                    distance = temp;
+                    j = i;
+                }
+            }
+            return lines[j].P1;
+        }
+
+        private double CalcMedian(Image<Gray, byte> img)
+        {
+            Bitmap bm = img.ToBitmap();
+            MemoryStream stream = new MemoryStream();
+            bm.Save(stream, ImageFormat.Png);
+            byte[] grayPixel = stream.ToArray();
+            Array.Sort(grayPixel);
+            if(grayPixel.Length % 2 == 0)
+            {
+                return (grayPixel[grayPixel.Length / 2] + grayPixel[(grayPixel.Length / 2) - 1]) / 2;
+            }
+            else
+            {
+                return grayPixel[(grayPixel.Length - 1 )/ 2];
+            }
         }
     }
 }
