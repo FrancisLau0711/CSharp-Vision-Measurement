@@ -446,7 +446,7 @@ namespace Vision_Measurement
                 panel1.AutoScroll = false;
                 pictureBox1.Dock = DockStyle.None;
                 pictureBox1.Location = new Point(0, 0);
-                if(rawImage != null)
+                if (rawImage != null)
                 {
                     pictureBox1.Size = rawImage.Size;
                 }
@@ -527,14 +527,14 @@ namespace Vision_Measurement
         private void PictureBox1MouseClick(object sender, MouseEventArgs e)
         {
             if (rawImage == null) { Cursor = Cursors.Default; return; }
-            if (lab.isPlacing) 
+            if (lab.isPlacing)
             {
                 lab.RevertToOriginalSize(scale);
                 lab.comments.Add(lab.comment);
                 lab.rawCoords.Add(lab.coord);
                 lab.fontFamilies.Add(lab.fontFamily);
                 lab.rawFontsSize.Add(lab.fontSize);
-                lab.fontColors.Add(lab.fontColor);  
+                lab.fontColors.Add(lab.fontColor);
                 lab.isPlacing = false;
                 return;
             }
@@ -713,7 +713,7 @@ namespace Vision_Measurement
                             if (len.removeSequence < 1)
                             {
                                 len.isRemoveLine = false;
-                                if(isEdge)
+                                if (isEdge)
                                 {
                                     switch (rad.sequence)
                                     {
@@ -728,7 +728,7 @@ namespace Vision_Measurement
                                             Image<Bgr, byte> img = bm.ToImage<Bgr, byte>();
                                             Image imgROI = cro.GetCropImage(img, rad.startCoord, rad.endCoord);
                                             (rad.radius, rad.center) = edg.AutoFindCircle((Bitmap)imgROI);
-                                            if(rad.radius == 0 || rad.center == PointF.Empty)
+                                            if (rad.radius == 0 || rad.center == PointF.Empty)
                                             {
                                                 rad.sequence = 0;
                                                 rad.distance = 0;
@@ -1041,7 +1041,7 @@ namespace Vision_Measurement
                                         j += 4;
                                     }
                                 }
-                                for(int i = 0; i < lab.comments.Count; i++)
+                                for (int i = 0; i < lab.comments.Count; i++)
                                 {
                                     Graphics g = Graphics.FromImage(rawImage);
                                     Font cFont = new Font(lab.fontFamilies[i], lab.fontsSize[i]);
@@ -1399,10 +1399,10 @@ namespace Vision_Measurement
                 }
                 g.DrawLine(dashedPen2, len.lines[i], len.lines[i + 3]);
                 g.DrawLine(dashedPen2, len.lines[i + 1], len.lines[i + 2]);
-                if (isShowLabel) 
+                if (isShowLabel)
                 {
                     g.FillRectangle(sb_white, rectangle);
-                    g.DrawString(length, font, sb_black, len.lines[i + 4]); 
+                    g.DrawString(length, font, sb_black, len.lines[i + 4]);
                 }
             }
 
@@ -1603,7 +1603,7 @@ namespace Vision_Measurement
             }
 
             // Lab
-            for(int i = 0; i < lab.comments.Count; i++)
+            for (int i = 0; i < lab.comments.Count; i++)
             {
                 SolidBrush sb = new SolidBrush(Color.FromName(lab.fontColors[i]));
                 Font cFont = new Font(lab.fontFamilies[i], lab.fontsSize[i]);
@@ -1867,7 +1867,7 @@ namespace Vision_Measurement
                         }
                         if (isEdge)
                         {
-                            if(rad.endCoord == PointF.Empty && rad.coord2 != PointF.Empty && rad.offsetCoord == PointF.Empty)
+                            if (rad.endCoord == PointF.Empty && rad.coord2 != PointF.Empty && rad.offsetCoord == PointF.Empty)
                             {
                                 float width = Math.Abs(rad.coord2.X - rad.startCoord.X);
                                 float height = Math.Abs(rad.coord2.Y - rad.startCoord.Y);
@@ -2960,7 +2960,7 @@ namespace Vision_Measurement
             int width = (int)Math.Abs(endCoord.X - startCoord.X) - 1;
             int height = (int)Math.Abs(endCoord.Y - startCoord.Y) - 1;
             Rectangle rect = new Rectangle((int)Math.Min(startCoord.X + 1, endCoord.X + 1), (int)Math.Min(startCoord.Y + 1, endCoord.Y + 1), width, height);
-            if(width < 2 || height < 2)
+            if (width < 2 || height < 2)
             {
                 return null;
             }
@@ -3023,7 +3023,7 @@ namespace Vision_Measurement
             for (int i = 0; i < rawCoords.Count; i++)
             {
                 coords[i] = new PointF { X = rawCoords[i].X * scale, Y = rawCoords[i].Y * scale };
-                fontsSize[i] = (int)((float) rawFontsSize[i] * scale);
+                fontsSize[i] = (int)((float)rawFontsSize[i] * scale);
             }
         }
 
@@ -3056,22 +3056,22 @@ namespace Vision_Measurement
     {
         public (float, PointF) AutoFindCircle(Bitmap imgROI)
         {
-            if(imgROI == null)
+            if (imgROI == null)
             {
                 return (0, PointF.Empty);
             }
             Image<Gray, byte> img = imgROI.ToImage<Gray, byte>();
-            CircleF[] circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, 10, 400, 25, (int)(0.75 * (img.Height/2)), (int)(1.33 * (img.Height/2)));
-            if(circles.Length == 0)
+            CircleF[] circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, 10, 25, 25, 1, (int)(1.33 * (img.Height / 2)));
+            if (circles.Length == 0)
             {
                 return (0, PointF.Empty);
             }
             float radius = 0;
             int j = 0;
-            for(int i = 0; i < circles.Length; i++)
+            for (int i = 0; i < circles.Length; i++)
             {
                 float temp = circles[i].Radius;
-                if(temp > radius && temp < img.Height / 2)
+                if (temp > radius && temp < img.Height / 2)
                 {
                     radius = temp;
                     j = i;
@@ -3083,7 +3083,7 @@ namespace Vision_Measurement
         public PointF AutoFindEdge(Bitmap imgROI, double sigma = 0.33)
         {
             Dimensioning tempDim = new Dimensioning();
-            if(imgROI == null)
+            if (imgROI == null)
             {
                 return PointF.Empty;
             }
@@ -3092,23 +3092,23 @@ namespace Vision_Measurement
             double lower = Math.Max(0, (1 - sigma) * median);
             double upper = Math.Min(255, (1 + sigma) * median);
             img = img.Canny(upper, lower);
-            LineSegment2D[] lines = CvInvoke.HoughLinesP(img, 1, Math.PI/180, 2);
+            LineSegment2D[] lines = CvInvoke.HoughLinesP(img, 1, Math.PI / 180, 2);
             if (lines.Length == 0)
             {
                 return PointF.Empty;
             }
-            double distance = 0;
+            double distance = float.MaxValue;
             int j = 0;
             for (int i = 0; i < lines.Length; i++)
             {
                 double temp = tempDim.GetDistance(lines[i].P1, lines[i].P2);
-                if(temp > distance && temp < img.Height)
+                if (temp < distance && temp < img.Height)
                 {
                     distance = temp;
                     j = i;
                 }
             }
-            return lines[j].P1;
+            return new PointF((lines[j].P1.X + lines[j].P2.X) / 2.0F, (lines[j].P1.Y + lines[j].P2.Y) / 2.0F);
         }
 
         private double CalcMedian(Image<Gray, byte> img)
@@ -3118,13 +3118,13 @@ namespace Vision_Measurement
             bm.Save(stream, ImageFormat.Png);
             byte[] grayPixel = stream.ToArray();
             Array.Sort(grayPixel);
-            if(grayPixel.Length % 2 == 0)
+            if (grayPixel.Length % 2 == 0)
             {
                 return (grayPixel[grayPixel.Length / 2] + grayPixel[(grayPixel.Length / 2) - 1]) / 2;
             }
             else
             {
-                return grayPixel[(grayPixel.Length - 1 )/ 2];
+                return grayPixel[(grayPixel.Length - 1) / 2];
             }
         }
     }
