@@ -36,7 +36,7 @@ namespace Vision_Measurement
             {
                 comboBox1.SelectedIndex = lastFontIndex;
             }
-            comboBox2.DataSource = Enum.GetValues(typeof(KnownColor)).Cast<KnownColor>().Where(k => k >= KnownColor.Transparent && k < KnownColor.ButtonFace)
+            comboBox2.DataSource = Enum.GetValues(typeof(KnownColor)).Cast<KnownColor>().Where(k => k > KnownColor.Transparent && k < KnownColor.ButtonFace)
                                        .Select(k => Color.FromKnownColor(k)).ToList();
             if (lastForeColorIndex > -1)
             {
