@@ -101,6 +101,7 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <EmbeddedResource Include="Settings.resx">
       <DependentUpon>Settings.cs</DependentUpon>
@@ -118,6 +119,45 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Icons\BGR Icon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Icons\Clear Icon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Icons\Close Icon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Icons\Crop Icon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Icons\Delete Icon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Icons\Download Icon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Icons\Drag Icon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Icons\Grayscale Icon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Icons\Logo.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Icons\Remove Icon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Icons\Settings Icon.jpg" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Icons\Upload Icon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Icons\User Icon.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

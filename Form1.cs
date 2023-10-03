@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Resources;
 using System.Windows.Forms;
 using Emgu.CV;
 using Emgu.CV.CvEnum;
@@ -43,15 +44,15 @@ namespace Vision_Measurement
         private bool isEdge = false;
         private bool dragging = false;
         private Point mouseLocation = new Point(0, 0);
-        private static readonly Color mainColor = Color.Cyan;
-        private static readonly Color subColor = Color.Yellow;
+        private static Color mainColor = Color.Cyan;
+        private static Color subColor = Color.Yellow;
         private Image rawImage;
         private Image croppedImage;
         private Image grayImage;
-        readonly Pen defaultPen = new Pen(mainColor, 1.7F);
-        readonly Pen arrowHarrowT = new Pen(mainColor, 1.5F);
-        readonly Pen arrowT = new Pen(mainColor, 1.5F);
-        readonly Pen dashedarrowH = new Pen(mainColor, 1.5F)
+        Pen defaultPen = new Pen(mainColor, 1.7F);
+        Pen arrowHarrowT = new Pen(mainColor, 1.5F);
+        Pen arrowT = new Pen(mainColor, 1.5F);
+        Pen dashedarrowH = new Pen(mainColor, 1.5F)
         {
             DashPattern = new float[] { 4F, 2F, 1F, 3F }
         };
@@ -289,22 +290,19 @@ namespace Vision_Measurement
                 return;
             }
             isGrayScale = !isGrayScale;
-            string workingDirectory = Directory.GetCurrentDirectory();
             if (isGrayScale)
             {
                 grayImage = MakeGrayscale((Bitmap)rawImage);
                 Bitmap bmp = ResizeImage(grayImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
                 button3.Text = "BGR";
-                string path = Directory.GetParent(workingDirectory).Parent.FullName + @"\Icons\BGR Icon.png";
-                button3.Image = Image.FromFile(path);
+                button3.Image = Properties.Resources.BGR_Icon;
                 pictureBox1.Image = bmp;
             }
             else
             {
                 Bitmap bmp = ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
                 button3.Text = "GrayScale";
-                string path = Directory.GetParent(workingDirectory).Parent.FullName + @"\Icons\Grayscale Icon.png";
-                button3.Image = Image.FromFile(path);
+                button3.Image = Properties.Resources.Grayscale_Icon;
                 pictureBox1.Image = bmp;
             }
         }
@@ -432,14 +430,14 @@ namespace Vision_Measurement
                 isDrag = false;
                 isCrop = false;
                 button5.BackColor = Color.Green;
-                button6.BackColor = Color.FromArgb(61, 30, 54);
-                button7.BackColor = Color.FromArgb(62, 30, 54);
+                button6.BackColor = Control.DefaultBackColor;
+                button7.BackColor = Control.DefaultBackColor;
                 cro.RectClear();
                 pictureBox1.Invalidate();
             }
             else
             {
-                button5.BackColor = Color.FromArgb(60, 30, 54);
+                button5.BackColor = Control.DefaultBackColor;
             }
         }
         private void DragImage(object sender, EventArgs e)
@@ -456,14 +454,14 @@ namespace Vision_Measurement
                     pictureBox1.Size = rawImage.Size;
                 }
                 button6.BackColor = Color.Green;
-                button5.BackColor = Color.FromArgb(60, 30, 54);
-                button7.BackColor = Color.FromArgb(62, 30, 54);
+                button5.BackColor = Control.DefaultBackColor;
+                button7.BackColor = Control.DefaultBackColor;
                 cro.RectClear();
                 pictureBox1.Invalidate();
             }
             else
             {
-                button6.BackColor = Color.FromArgb(61, 30, 54);
+                button6.BackColor = Control.DefaultBackColor;
             }
         }
 
@@ -475,12 +473,12 @@ namespace Vision_Measurement
                 isRemove = false;
                 isDrag = false;
                 button7.BackColor = Color.Green;
-                button5.BackColor = Color.FromArgb(60, 30, 54);
-                button6.BackColor = Color.FromArgb(61, 30, 54);
+                button5.BackColor = Control.DefaultBackColor;
+                button6.BackColor = Control.DefaultBackColor;
             }
             else
             {
-                button7.BackColor = Color.FromArgb(62, 30, 54);
+                button7.BackColor = Control.DefaultBackColor;
                 cro.RectClear();
                 pictureBox1.Invalidate();
             }
@@ -495,6 +493,13 @@ namespace Vision_Measurement
         private void ChangeSettings()
         {
             distPerPixel = param.DistPerPixel;
+            mainColor = param.MainColor;
+            subColor = param.SubColor;
+            edgeDetectWidth = param.EdgeDetectWidth;
+            defaultPen.Color = mainColor;
+            arrowHarrowT.Color = mainColor;
+            arrowT.Color = mainColor;
+            dashedarrowH.Color = mainColor;
             label6.Text = distPerPixel + " μm";
         }
 
@@ -514,7 +519,7 @@ namespace Vision_Measurement
             }
             else
             {
-                button12.BackColor = Color.FromArgb(51, 30, 54);
+                button12.BackColor = Control.DefaultBackColor;
             }
             pictureBox1.Invalidate();
         }
@@ -1426,7 +1431,7 @@ namespace Vision_Measurement
             g.SmoothingMode = SmoothingMode.AntiAlias;
             SolidBrush sb_black = new SolidBrush(Color.Black);
             SolidBrush sb_white = new SolidBrush(Color.White);
-            SolidBrush sb_cyan = new SolidBrush(Color.FromArgb(128, Color.Cyan));
+            SolidBrush sb_main = new SolidBrush(Color.FromArgb(128, mainColor));
             len.RescaleAll(scale);
             par.RescaleAll(scale);
             per.RescaleAll(scale);
@@ -1710,11 +1715,11 @@ namespace Vision_Measurement
                 switch (Measurement)
                 {
                     case EMeasurement.Length:
-                        if (isEdge && len.endCoord == PointF.Empty)
+                        if (isEdge && len.movingCoord2 != PointF.Empty && len.endCoord == PointF.Empty)
                         {
                             PointF coord = new PointF(len.movingCoord2.X - (edgeDetectWidth / 2), len.movingCoord2.Y - (edgeDetectWidth / 2));
                             RectangleF rect = new RectangleF(coord.X, coord.Y, edgeDetectWidth, edgeDetectWidth);
-                            g.FillEllipse(sb_cyan, rect);
+                            g.FillEllipse(sb_main, rect);
                         }
                         if (len.startCoord != PointF.Empty)
                         {
@@ -1943,7 +1948,7 @@ namespace Vision_Measurement
                                 float height = Math.Abs(rad.coord2.Y - rad.startCoord.Y);
                                 RectangleF rect = new RectangleF(Math.Min(rad.startCoord.X, rad.coord2.X), Math.Min(rad.startCoord.Y, rad.coord2.Y), width, height);
                                 g.DrawRectangle(defaultPen, Rectangle.Round(rect));
-                                g.FillRectangle(sb_cyan, rect);
+                                g.FillRectangle(sb_main, rect);
                             }
                             if (rad.offsetCoord != PointF.Empty)
                             {
@@ -2041,7 +2046,7 @@ namespace Vision_Measurement
                                 float height = Math.Abs(dia.coord2.Y - dia.startCoord.Y);
                                 RectangleF rect = new RectangleF(Math.Min(dia.startCoord.X, dia.coord2.X), Math.Min(dia.startCoord.Y, dia.coord2.Y), width, height);
                                 g.DrawRectangle(defaultPen, Rectangle.Round(rect));
-                                g.FillRectangle(sb_cyan, rect);
+                                g.FillRectangle(sb_main, rect);
                             }
                             if (dia.offsetCoord != PointF.Empty)
                             {
