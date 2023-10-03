@@ -9,6 +9,7 @@ using Emgu.CV;
 using Emgu.CV.CvEnum;
 using Emgu.CV.Structure;
 using Emgu.CV.Util;
+using Emgu.CV.XPhoto;
 using Image = System.Drawing.Image;
 
 namespace Vision_Measurement
@@ -28,6 +29,7 @@ namespace Vision_Measurement
         private EMeasurement Measurement => (EMeasurement)comboBox1.SelectedItem;
         public const int measurementMaxCount = short.MaxValue;
         public const int displayDecimalPlaces = 3;
+        private int edgeDetectWidth = 20;
         private double distPerPixel = 3.45;
         private const float crossScale = 5;
         private const float smallArcScale = 10;
@@ -514,6 +516,7 @@ namespace Vision_Measurement
             {
                 button12.BackColor = Color.FromArgb(51, 30, 54);
             }
+            pictureBox1.Invalidate();
         }
 
         private void PictureBox1MouseDown(object sender, MouseEventArgs e)
@@ -598,13 +601,11 @@ namespace Vision_Measurement
                                         len.startCoord = e.Location;
                                         if (isEdge)
                                         {
-                                            PointF topLeft = new PointF(len.startCoord.X - 10, len.startCoord.Y - 10);
-                                            PointF bottomRight = new PointF(len.startCoord.X + 10, len.startCoord.Y + 10);
-                                            Bitmap bm = new Bitmap(pictureBox1.ClientSize.Width, pictureBox1.ClientSize.Height);
-                                            pictureBox1.DrawToBitmap(bm, pictureBox1.ClientRectangle);
-                                            Image<Bgr, byte> img = bm.ToImage<Bgr, byte>();
-                                            Image imgROI = cro.GetCropImage(img, topLeft, bottomRight);
-                                            PointF temp1 = edg.AutoFindEdge((Bitmap)imgROI);
+                                            PointF defaultCenter = new PointF(len.startCoord.X / scale, len.startCoord.Y / scale);
+                                            PointF topLeft = new PointF(defaultCenter.X - (edgeDetectWidth / 2), defaultCenter.Y - (edgeDetectWidth / 2));
+                                            RectangleF rect = new RectangleF(topLeft.X, topLeft.Y, edgeDetectWidth, edgeDetectWidth);
+                                            Bitmap bm = new Bitmap(rawImage).Clone(Rectangle.Round(rect), rawImage.PixelFormat);
+                                            PointF temp1 = edg.AutoFindEdge(bm);
                                             if (temp1 != PointF.Empty)
                                             {
                                                 len.startCoord.X = temp1.X + topLeft.X;
@@ -620,13 +621,11 @@ namespace Vision_Measurement
                                         len.endCoord = len.movingCoord;
                                         if (isEdge)
                                         {
-                                            PointF topLeft = new PointF(len.endCoord.X - 10, len.endCoord.Y - 10);
-                                            PointF bottomRight = new PointF(len.endCoord.X + 10, len.endCoord.Y + 10);
-                                            Bitmap bm = new Bitmap(pictureBox1.ClientSize.Width, pictureBox1.ClientSize.Height);
-                                            pictureBox1.DrawToBitmap(bm, pictureBox1.ClientRectangle);
-                                            Image<Bgr, byte> img = bm.ToImage<Bgr, byte>();
-                                            Image imgROI = cro.GetCropImage(img, topLeft, bottomRight);
-                                            PointF temp1 = edg.AutoFindEdge((Bitmap)imgROI);
+                                            PointF defaultCenter = new PointF(len.endCoord.X / scale, len.endCoord.Y / scale);
+                                            PointF topLeft = new PointF(defaultCenter.X - (edgeDetectWidth / 2), defaultCenter.Y - (edgeDetectWidth / 2));
+                                            RectangleF rect = new RectangleF(topLeft.X, topLeft.Y, edgeDetectWidth, edgeDetectWidth);
+                                            Bitmap bm = new Bitmap(rawImage).Clone(Rectangle.Round(rect), rawImage.PixelFormat);
+                                            PointF temp1 = edg.AutoFindEdge(bm);
                                             if (temp1 != PointF.Empty)
                                             {
                                                 len.endCoord.X = temp1.X + topLeft.X;
@@ -651,6 +650,8 @@ namespace Vision_Measurement
                                         len.rawLines.Add(len.offsetCoord);
                                         len.rawLines.Add(len.newEndCoord);
                                         len.rawLines.Add(len.extendedCoord);
+                                        len.endCoord = PointF.Empty;
+                                        len.startCoord = PointF.Empty;
                                         len.sequence = 0;
                                         break;
                                 }
@@ -1189,6 +1190,11 @@ namespace Vision_Measurement
                 switch (Measurement)
                 {
                     case EMeasurement.Length:
+                        if (isEdge && len.endCoord == PointF.Empty)
+                        {
+                            len.movingCoord2 = e.Location;
+                            pictureBox1.Invalidate();
+                        }
                         if (len.startCoord != PointF.Empty && len.endCoord == PointF.Empty)
                         {
                             (len.lineVertical, len.lineHorizontal) = len.CheckAngle();
@@ -1704,6 +1710,12 @@ namespace Vision_Measurement
                 switch (Measurement)
                 {
                     case EMeasurement.Length:
+                        if (isEdge && len.endCoord == PointF.Empty)
+                        {
+                            PointF coord = new PointF(len.movingCoord2.X - (edgeDetectWidth / 2), len.movingCoord2.Y - (edgeDetectWidth / 2));
+                            RectangleF rect = new RectangleF(coord.X, coord.Y, edgeDetectWidth, edgeDetectWidth);
+                            g.FillEllipse(sb_cyan, rect);
+                        }
                         if (len.startCoord != PointF.Empty)
                         {
                             if (len.movingCoord != PointF.Empty && len.endCoord == PointF.Empty)
