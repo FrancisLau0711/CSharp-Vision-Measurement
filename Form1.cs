@@ -49,10 +49,10 @@ namespace Vision_Measurement
         private Image rawImage;
         private Image croppedImage;
         private Image grayImage;
-        Pen defaultPen = new Pen(mainColor, 1.7F);
-        Pen arrowHarrowT = new Pen(mainColor, 1.5F);
-        Pen arrowT = new Pen(mainColor, 1.5F);
-        Pen dashedarrowH = new Pen(mainColor, 1.5F)
+        readonly Pen defaultPen = new Pen(mainColor, 1.7F);
+        readonly Pen arrowHarrowT = new Pen(mainColor, 1.5F);
+        readonly Pen arrowT = new Pen(mainColor, 1.5F);
+        readonly Pen dashedarrowH = new Pen(mainColor, 1.5F)
         {
             DashPattern = new float[] { 4F, 2F, 1F, 3F }
         };
@@ -603,7 +603,7 @@ namespace Vision_Measurement
                                 switch (len.sequence)
                                 {
                                     case 0:
-                                        len.startCoord = e.Location;
+                                        len.startCoord = len.movingCoord2;
                                         if (isEdge)
                                         {
                                             PointF defaultCenter = new PointF(len.startCoord.X / scale, len.startCoord.Y / scale);
@@ -674,7 +674,20 @@ namespace Vision_Measurement
                                 switch (par.sequence)
                                 {
                                     case 0:
-                                        par.startCoord = e.Location;
+                                        par.startCoord = par.movingCoord3;
+                                        if (isEdge)
+                                        {
+                                            PointF defaultCenter = new PointF(par.startCoord.X / scale, par.startCoord.Y / scale);
+                                            PointF topLeft = new PointF(defaultCenter.X - (edgeDetectWidth / 2), defaultCenter.Y - (edgeDetectWidth / 2));
+                                            RectangleF rect = new RectangleF(topLeft.X, topLeft.Y, edgeDetectWidth, edgeDetectWidth);
+                                            Bitmap bm = new Bitmap(rawImage).Clone(Rectangle.Round(rect), rawImage.PixelFormat);
+                                            PointF temp1 = edg.AutoFindEdge(bm);
+                                            if (temp1 != PointF.Empty)
+                                            {
+                                                par.startCoord.X = temp1.X + topLeft.X;
+                                                par.startCoord.Y = temp1.Y + topLeft.Y;
+                                            }
+                                        }
                                         par.movingCoord2 = PointF.Empty;
                                         par.epolateCoord1 = PointF.Empty;
                                         par.epolateCoord2 = PointF.Empty;
@@ -682,10 +695,36 @@ namespace Vision_Measurement
                                         break;
                                     case 1:
                                         par.endCoord = par.movingCoord;
+                                        if (isEdge)
+                                        {
+                                            PointF defaultCenter = new PointF(par.endCoord.X / scale, par.endCoord.Y / scale);
+                                            PointF topLeft = new PointF(defaultCenter.X - (edgeDetectWidth / 2), defaultCenter.Y - (edgeDetectWidth / 2));
+                                            RectangleF rect = new RectangleF(topLeft.X, topLeft.Y, edgeDetectWidth, edgeDetectWidth);
+                                            Bitmap bm = new Bitmap(rawImage).Clone(Rectangle.Round(rect), rawImage.PixelFormat);
+                                            PointF temp1 = edg.AutoFindEdge(bm);
+                                            if (temp1 != PointF.Empty)
+                                            {
+                                                par.endCoord.X = temp1.X + topLeft.X;
+                                                par.endCoord.Y = temp1.Y + topLeft.Y;
+                                            }
+                                        }
                                         par.sequence++;
                                         break;
                                     case 2:
                                         par.offsetCoord = par.movingCoord2;
+                                        if (isEdge)
+                                        {
+                                            PointF defaultCenter = new PointF(par.offsetCoord.X / scale, par.offsetCoord.Y / scale);
+                                            PointF topLeft = new PointF(defaultCenter.X - (edgeDetectWidth / 2), defaultCenter.Y - (edgeDetectWidth / 2));
+                                            RectangleF rect = new RectangleF(topLeft.X, topLeft.Y, edgeDetectWidth, edgeDetectWidth);
+                                            Bitmap bm = new Bitmap(rawImage).Clone(Rectangle.Round(rect), rawImage.PixelFormat);
+                                            PointF temp1 = edg.AutoFindEdge(bm);
+                                            if (temp1 != PointF.Empty)
+                                            {
+                                                par.offsetCoord.X = temp1.X + topLeft.X;
+                                                par.offsetCoord.Y = temp1.Y + topLeft.Y;
+                                            }
+                                        }
                                         par.sequence++;
                                         break;
                                     case 3:
@@ -719,19 +758,78 @@ namespace Vision_Measurement
                                 switch (per.sequence)
                                 {
                                     case 0:
-                                        per.startCoord = e.Location;
+                                        per.startCoord = per.movingCoord3;
+                                        if (isEdge)
+                                        {
+                                            PointF defaultCenter = new PointF(per.startCoord.X / scale, per.startCoord.Y / scale);
+                                            PointF topLeft = new PointF(defaultCenter.X - (edgeDetectWidth / 2), defaultCenter.Y - (edgeDetectWidth / 2));
+                                            RectangleF rect = new RectangleF(topLeft.X, topLeft.Y, edgeDetectWidth, edgeDetectWidth);
+                                            Bitmap bm = new Bitmap(rawImage).Clone(Rectangle.Round(rect), rawImage.PixelFormat);
+                                            PointF temp1 = edg.AutoFindEdge(bm);
+                                            if (temp1 != PointF.Empty)
+                                            {
+                                                per.startCoord.X = temp1.X + topLeft.X;
+                                                per.startCoord.Y = temp1.Y + topLeft.Y;
+                                            }
+                                        }
                                         per.sequence++;
                                         break;
                                     case 1:
                                         per.endCoord = per.movingCoord;
+                                        if (isEdge)
+                                        {
+                                            PointF defaultCenter = new PointF(per.endCoord.X / scale, per.endCoord.Y / scale);
+                                            PointF topLeft = new PointF(defaultCenter.X - (edgeDetectWidth / 2), defaultCenter.Y - (edgeDetectWidth / 2));
+                                            RectangleF rect = new RectangleF(topLeft.X, topLeft.Y, edgeDetectWidth, edgeDetectWidth);
+                                            Bitmap bm = new Bitmap(rawImage).Clone(Rectangle.Round(rect), rawImage.PixelFormat);
+                                            PointF temp1 = edg.AutoFindEdge(bm);
+                                            if (temp1 != PointF.Empty)
+                                            {
+                                                per.endCoord.X = temp1.X + topLeft.X;
+                                                per.endCoord.Y = temp1.Y + topLeft.Y;
+                                            }
+                                        }
                                         per.sequence++;
                                         break;
                                     case 2:
                                         per.offsetCoord = per.movingCoord2;
+                                        if (isEdge)
+                                        {
+                                            PointF defaultCenter = new PointF(per.offsetCoord.X / scale, per.offsetCoord.Y / scale);
+                                            PointF topLeft = new PointF(defaultCenter.X - (edgeDetectWidth / 2), defaultCenter.Y - (edgeDetectWidth / 2));
+                                            RectangleF rect = new RectangleF(topLeft.X, topLeft.Y, edgeDetectWidth, edgeDetectWidth);
+                                            Bitmap bm = new Bitmap(rawImage).Clone(Rectangle.Round(rect), rawImage.PixelFormat);
+                                            PointF temp1 = edg.AutoFindEdge(bm);
+                                            if (temp1 != PointF.Empty)
+                                            {
+                                                per.offsetCoord.X = temp1.X + topLeft.X;
+                                                per.offsetCoord.Y = temp1.Y + topLeft.Y;
+                                            }
+                                        }
                                         per.sequence++;
                                         break;
                                     case 3:
                                         per.extendedCoord = per.movingCoord2;
+                                        if (isEdge)
+                                        {
+                                            per.lastExtendedCoord = per.extendedCoord;
+                                            PointF defaultCenter = new PointF(per.extendedCoord.X / scale, per.extendedCoord.Y / scale);
+                                            PointF topLeft = new PointF(defaultCenter.X - (edgeDetectWidth / 2), defaultCenter.Y - (edgeDetectWidth / 2));
+                                            RectangleF rect = new RectangleF(topLeft.X, topLeft.Y, edgeDetectWidth, edgeDetectWidth);
+                                            Bitmap bm = new Bitmap(rawImage).Clone(Rectangle.Round(rect), rawImage.PixelFormat);
+                                            PointF temp1 = edg.AutoFindEdge(bm);
+                                            if (temp1 != PointF.Empty)
+                                            {
+                                                per.extendedCoord.X = temp1.X + topLeft.X;
+                                                per.extendedCoord.Y = temp1.Y + topLeft.Y;
+                                            }
+                                            float dx = per.lastExtendedCoord.X - per.extendedCoord.X;
+                                            float dy = per.lastExtendedCoord.Y - per.extendedCoord.Y;
+                                            per.perpendicularCoord.X -= dx;
+                                            per.perpendicularCoord.Y -= dy;
+                                            per.perpendicularCoord2.X -= dx;
+                                            per.perpendicularCoord2.Y -= dy;
+                                        }
                                         per.lengthCount++;
                                         per.finalLength[per.lengthCount - 1] = per.length;
                                         per.RevertToOriginalSize(scale);
@@ -1202,8 +1300,8 @@ namespace Vision_Measurement
                         }
                         if (len.startCoord != PointF.Empty && len.endCoord == PointF.Empty)
                         {
-                            (len.lineVertical, len.lineHorizontal) = len.CheckAngle();
                             len.movingCoord = e.Location;
+                            (len.lineVertical, len.lineHorizontal) = len.CheckAngle();
                             if (len.lineHorizontal)
                             {
                                 len.movingCoord.Y = len.startCoord.Y;
@@ -1238,6 +1336,11 @@ namespace Vision_Measurement
                         break;
 
                     case EMeasurement.Parallel:
+                        if (isEdge && par.offsetCoord == PointF.Empty)
+                        {
+                            par.movingCoord3 = e.Location;
+                            pictureBox1.Invalidate();
+                        }
                         if (par.startCoord != PointF.Empty && par.endCoord == PointF.Empty)
                         {
                             (par.lineVertical, par.lineHorizontal) = par.CheckAngle();
@@ -1257,13 +1360,14 @@ namespace Vision_Measurement
                             par.movingCoord2 = e.Location;
                             par.newEndCoord = par.CalcNewCoord(par.startCoord, par.endCoord, par.movingCoord2);
                             (par.epolateCoord1, par.epolateCoord2) = dim.Extrapolation(par.startCoord, par.endCoord, pictureBox1.Size.Width, pictureBox1.Height);
-                            (par.epolateCoord3, par.epolateCoord4) = dim.Extrapolation(par.movingCoord2, par.newEndCoord, pictureBox1.Size.Width, pictureBox1.Height);
                             (par.perpendicularCoord, par.length) = dim.CalcPerpendicularDistance(par.epolateCoord1, par.epolateCoord2, par.movingCoord2, scale);
                             pictureBox1.Invalidate();
                         }
                         if (par.offsetCoord != PointF.Empty)
                         {
                             par.movingCoord2 = e.Location;
+                            par.newEndCoord = par.CalcNewCoord(par.startCoord, par.endCoord, par.offsetCoord);
+                            (par.epolateCoord3, par.epolateCoord4) = dim.Extrapolation(par.offsetCoord, par.newEndCoord, pictureBox1.Size.Width, pictureBox1.Height);
                             (par.perpendicularCoord, _) = dim.CalcPerpendicularDistance(par.epolateCoord1, par.epolateCoord2, par.movingCoord2, scale);
                             (par.perpendicularCoord2, _) = dim.CalcPerpendicularDistance(par.epolateCoord3, par.epolateCoord4, par.movingCoord2, scale);
                             if (par.perpendicularCoord2.X < par.perpendicularCoord.X)
@@ -1273,8 +1377,12 @@ namespace Vision_Measurement
                             pictureBox1.Invalidate();
                         }
                         break;
-
                     case EMeasurement.Perpendicular:
+                        if (isEdge && per.extendedCoord == PointF.Empty)
+                        {
+                            per.movingCoord3 = e.Location;
+                            pictureBox1.Invalidate();
+                        }
                         if (per.startCoord != PointF.Empty && per.endCoord == PointF.Empty)
                         {
                             (per.lineVertical, per.lineHorizontal) = per.CheckAngle();
@@ -1306,7 +1414,16 @@ namespace Vision_Measurement
                         }
                         if (per.offsetCoord != PointF.Empty)
                         {
+                            int threshold = 100;
+                            PointF temp;
                             per.movingCoord2 = e.Location;
+                            (per.perpendicularCoord, per.length) = dim.CalcPerpendicularDistance(per.epolateCoord1, per.epolateCoord2, per.offsetCoord, scale);
+                            if (per.endCoord.Y + 100 > pictureBox1.Height)
+                            {
+                                threshold = -100;
+                            }
+                            temp = dim.CalcNormal(per.perpendicularCoord, per.offsetCoord, threshold);
+                            (per.epolateCoord3, per.epolateCoord4) = dim.Extrapolation(per.offsetCoord, temp, pictureBox1.Width, pictureBox1.Height);
                             (per.endCoord, _) = dim.CalcPerpendicularDistance(per.epolateCoord1, per.epolateCoord2, per.offsetCoord, scale);
                             (per.perpendicularCoord, _) = dim.CalcPerpendicularDistance(per.epolateCoord1, per.epolateCoord2, per.movingCoord2, scale);
                             (per.perpendicularCoord2, _) = dim.CalcPerpendicularDistance(per.epolateCoord3, per.epolateCoord4, per.movingCoord2, scale);
@@ -1779,6 +1896,12 @@ namespace Vision_Measurement
                         }
                         break;
                     case EMeasurement.Parallel:
+                        if (isEdge && par.movingCoord3 != PointF.Empty && par.offsetCoord == PointF.Empty)
+                        {
+                            PointF coord = new PointF(par.movingCoord3.X - (edgeDetectWidth / 2), par.movingCoord3.Y - (edgeDetectWidth / 2));
+                            RectangleF rect = new RectangleF(coord.X, coord.Y, edgeDetectWidth, edgeDetectWidth);
+                            g.FillEllipse(sb_main, rect);
+                        }
                         if (par.movingCoord != PointF.Empty && par.movingCoord2 == PointF.Empty)
                         {
                             DrawCross(ref g, par.startCoord);
@@ -1837,6 +1960,12 @@ namespace Vision_Measurement
                         }
                         break;
                     case EMeasurement.Perpendicular:
+                        if (isEdge && per.movingCoord3 != PointF.Empty && per.extendedCoord == PointF.Empty)
+                        {
+                            PointF coord = new PointF(per.movingCoord3.X - (edgeDetectWidth / 2), per.movingCoord3.Y - (edgeDetectWidth / 2));
+                            RectangleF rect = new RectangleF(coord.X, coord.Y, edgeDetectWidth, edgeDetectWidth);
+                            g.FillEllipse(sb_main, rect);
+                        }
                         if (per.movingCoord != PointF.Empty && per.movingCoord2 == PointF.Empty)
                         {
                             DrawCross(ref g, per.startCoord);
@@ -2435,6 +2564,7 @@ namespace Vision_Measurement
 
     public class Parallel : Length
     {
+        public PointF movingCoord3;
         public PointF perpendicularCoord, perpendicularCoord2;
         public PointF epolateCoord1, epolateCoord2, epolateCoord3, epolateCoord4;
 
@@ -2513,6 +2643,7 @@ namespace Vision_Measurement
 
     public class Perpendicular : Parallel
     {
+        public PointF lastExtendedCoord = PointF.Empty;
         public override void RevertToOriginalSize(float scale)
         {
             epolateCoord1.X /= scale;
@@ -3149,9 +3280,9 @@ namespace Vision_Measurement
             double lower = Math.Max(0, (1 - sigma) * median);
             double upper = Math.Min(255, (1 + sigma) * median);
             img = img.Canny(upper, lower);
-            for(int w = -2; w <= 2; w++)
+            for (int w = -2; w <= 2; w++)
             {
-                for(int h = -2; h <= 2; h++)
+                for (int h = -2; h <= 2; h++)
                 {
                     Gray pixel = img[(img.Width / 2) + w, (img.Height / 2) + h];
                     if (pixel.Intensity > 240)
