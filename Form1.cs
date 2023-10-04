@@ -1753,7 +1753,7 @@ namespace Vision_Measurement
                             PointF newExtendedCoord = new PointF { X = len.movingCoord2.X - dx, Y = len.movingCoord2.Y - dy };
                             DrawCross(ref g, len.startCoord);
                             DrawCross(ref g, len.endCoord);
-                            if (len.extendedCoord.X >= len.newEndCoord.X && len.extendedCoord.X <= len.movingCoord2.X)
+                            if (len.extendedCoord.X > len.newEndCoord.X && len.extendedCoord.X < len.movingCoord2.X)
                             {
                                 g.DrawLine(arrowHarrowT, len.movingCoord2, len.newEndCoord);
                             }
