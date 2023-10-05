@@ -188,7 +188,7 @@ namespace Vision_Measurement
             SizeF size = g.MeasureString(time, font);
             PointF location = new PointF(pictureBox1.ClientSize.Width - (size.Width + 1), pictureBox1.ClientSize.Height - (size.Height + 1));
             g.FillRectangle(Brushes.White, location.X, location.Y, size.Width, size.Height);
-            g.DrawString(time, font, Brushes.Black, location.X, location.Y);
+            g.DrawString(time, font, Brushes.Black, location);
             SaveFileDialog file = new SaveFileDialog()
             {
                 Title = "Save Image",
@@ -603,9 +603,10 @@ namespace Vision_Measurement
                                 switch (len.sequence)
                                 {
                                     case 0:
-                                        len.startCoord = len.movingCoord2;
+                                        len.startCoord = e.Location;
                                         if (isEdge)
                                         {
+                                            len.startCoord = len.movingCoord2;
                                             PointF defaultCenter = new PointF(len.startCoord.X / scale, len.startCoord.Y / scale);
                                             PointF topLeft = new PointF(defaultCenter.X - (edgeDetectWidth / 2), defaultCenter.Y - (edgeDetectWidth / 2));
                                             RectangleF rect = new RectangleF(topLeft.X, topLeft.Y, edgeDetectWidth, edgeDetectWidth);
@@ -674,9 +675,10 @@ namespace Vision_Measurement
                                 switch (par.sequence)
                                 {
                                     case 0:
-                                        par.startCoord = par.movingCoord3;
+                                        par.startCoord = e.Location;
                                         if (isEdge)
                                         {
+                                            par.startCoord = par.movingCoord3;
                                             PointF defaultCenter = new PointF(par.startCoord.X / scale, par.startCoord.Y / scale);
                                             PointF topLeft = new PointF(defaultCenter.X - (edgeDetectWidth / 2), defaultCenter.Y - (edgeDetectWidth / 2));
                                             RectangleF rect = new RectangleF(topLeft.X, topLeft.Y, edgeDetectWidth, edgeDetectWidth);
@@ -758,9 +760,10 @@ namespace Vision_Measurement
                                 switch (per.sequence)
                                 {
                                     case 0:
-                                        per.startCoord = per.movingCoord3;
+                                        per.startCoord = e.Location;
                                         if (isEdge)
                                         {
+                                            per.startCoord = per.movingCoord3;
                                             PointF defaultCenter = new PointF(per.startCoord.X / scale, per.startCoord.Y / scale);
                                             PointF topLeft = new PointF(defaultCenter.X - (edgeDetectWidth / 2), defaultCenter.Y - (edgeDetectWidth / 2));
                                             RectangleF rect = new RectangleF(topLeft.X, topLeft.Y, edgeDetectWidth, edgeDetectWidth);
@@ -3244,16 +3247,35 @@ namespace Vision_Measurement
             double median = CalcMedian(img);
             double upper = Math.Min(255, (1 + sigma) * median);
             double lower = Math.Max(0, (1 - sigma) * median);
-            circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, img.Height / 2, upper, 0.1 * upper, 1, (int)(1.33 * (img.Height / 2)));
-            if (circles.Length == 0)
+            if(img.Height < 300)
             {
-                circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, img.Height / 2, lower, 0.1 * upper, 1, (int)(1.33 * (img.Height / 2)));
-                if(circles.Length == 0)
+                circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, img.Height / 2, upper, 0.1 * upper, 1, (int)(1.33 * (img.Height / 2)));
+                if (circles.Length == 0)
                 {
-                    circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, img.Height, lower, 0.1 * upper, 1, (int)(1.33 * (img.Height / 2)));
-                    if(circles.Length == 0)
+                    circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, img.Height / 2, lower, 0.1 * upper, 1, (int)(1.33 * (img.Height / 2)));
+                    if (circles.Length == 0)
                     {
-                        return (0, PointF.Empty);
+                        circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, img.Height, lower, 0.1 * upper, 1, (int)(1.33 * (img.Height / 2)));
+                        if (circles.Length == 0)
+                        {
+                            return (0, PointF.Empty);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, img.Height / 10, upper, 0.2 * upper, 1, (int)(1.33 * (img.Height / 2)));
+                if (circles.Length == 0)
+                {
+                    circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, img.Height / 10, lower, 0.2 * upper, 1, (int)(1.33 * (img.Height / 2)));
+                    if (circles.Length == 0)
+                    {
+                        circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, img.Height / 5, lower, 0.2 * upper, 1, (int)(1.33 * (img.Height / 2)));
+                        if (circles.Length == 0)
+                        {
+                            return (0, PointF.Empty);
+                        }
                     }
                 }
             }
