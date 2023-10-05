@@ -1363,6 +1363,7 @@ namespace Vision_Measurement
                             par.movingCoord2 = e.Location;
                             par.newEndCoord = par.CalcNewCoord(par.startCoord, par.endCoord, par.movingCoord2);
                             (par.epolateCoord1, par.epolateCoord2) = dim.Extrapolation(par.startCoord, par.endCoord, pictureBox1.Size.Width, pictureBox1.Height);
+                            (par.epolateCoord3, par.epolateCoord4) = dim.Extrapolation(par.movingCoord2, par.newEndCoord, pictureBox1.Size.Width, pictureBox1.Height);
                             (par.perpendicularCoord, par.length) = dim.CalcPerpendicularDistance(par.epolateCoord1, par.epolateCoord2, par.movingCoord2, scale);
                             pictureBox1.Invalidate();
                         }
@@ -3247,36 +3248,13 @@ namespace Vision_Measurement
             double median = CalcMedian(img);
             double upper = Math.Min(255, (1 + sigma) * median);
             double lower = Math.Max(0, (1 - sigma) * median);
-            if(img.Height < 300)
+            circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, img.Height, upper, 0.11 * upper, 0, (int)(1.33 * img.Height));
+            if (circles.Length == 0)
             {
-                circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, img.Height / 2, upper, 0.1 * upper, 1, (int)(1.33 * (img.Height / 2)));
+                circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, img.Height, lower, 0.11 * upper, 0 , (int)(1.33 * img.Height));
                 if (circles.Length == 0)
                 {
-                    circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, img.Height / 2, lower, 0.1 * upper, 1, (int)(1.33 * (img.Height / 2)));
-                    if (circles.Length == 0)
-                    {
-                        circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, img.Height, lower, 0.1 * upper, 1, (int)(1.33 * (img.Height / 2)));
-                        if (circles.Length == 0)
-                        {
-                            return (0, PointF.Empty);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, img.Height / 10, upper, 0.2 * upper, 1, (int)(1.33 * (img.Height / 2)));
-                if (circles.Length == 0)
-                {
-                    circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, img.Height / 10, lower, 0.2 * upper, 1, (int)(1.33 * (img.Height / 2)));
-                    if (circles.Length == 0)
-                    {
-                        circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, img.Height / 5, lower, 0.2 * upper, 1, (int)(1.33 * (img.Height / 2)));
-                        if (circles.Length == 0)
-                        {
-                            return (0, PointF.Empty);
-                        }
-                    }
+                    return (0, PointF.Empty);
                 }
             }
             float radius = 0;
