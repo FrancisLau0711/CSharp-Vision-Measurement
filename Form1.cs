@@ -430,14 +430,14 @@ namespace Vision_Measurement
                 isDrag = false;
                 isCrop = false;
                 button5.BackColor = Color.Green;
-                button6.BackColor = Control.DefaultBackColor;
-                button7.BackColor = Control.DefaultBackColor;
+                button6.BackColor = Color.FromArgb(61, 30, 54);
+                button7.BackColor = Color.FromArgb(62, 30, 54);
                 cro.RectClear();
                 pictureBox1.Invalidate();
             }
             else
             {
-                button5.BackColor = Control.DefaultBackColor;
+                button5.BackColor = Color.FromArgb(60, 30, 54);
             }
         }
         private void DragImage(object sender, EventArgs e)
@@ -454,14 +454,14 @@ namespace Vision_Measurement
                     pictureBox1.Size = rawImage.Size;
                 }
                 button6.BackColor = Color.Green;
-                button5.BackColor = Control.DefaultBackColor;
-                button7.BackColor = Control.DefaultBackColor;
+                button5.BackColor = Color.FromArgb(60, 30, 54);
+                button7.BackColor = Color.FromArgb(62, 30, 54);
                 cro.RectClear();
                 pictureBox1.Invalidate();
             }
             else
             {
-                button6.BackColor = Control.DefaultBackColor;
+                button6.BackColor = Color.FromArgb(61, 30, 54);
             }
         }
 
@@ -473,12 +473,12 @@ namespace Vision_Measurement
                 isRemove = false;
                 isDrag = false;
                 button7.BackColor = Color.Green;
-                button5.BackColor = Control.DefaultBackColor;
-                button6.BackColor = Control.DefaultBackColor;
+                button5.BackColor = Color.FromArgb(60, 30, 54);
+                button6.BackColor = Color.FromArgb(61, 30, 54);
             }
             else
             {
-                button7.BackColor = Control.DefaultBackColor;
+                button7.BackColor = Color.FromArgb(62, 30, 54);
                 cro.RectClear();
                 pictureBox1.Invalidate();
             }
@@ -519,7 +519,7 @@ namespace Vision_Measurement
             }
             else
             {
-                button12.BackColor = Control.DefaultBackColor;
+                button12.BackColor = Color.FromArgb(51, 30, 54);
             }
             pictureBox1.Invalidate();
         }
@@ -3233,7 +3233,7 @@ namespace Vision_Measurement
 
     public class EdgeDetection
     {
-        public (float, PointF) AutoFindCircle(Bitmap imgROI)
+        public (float, PointF) AutoFindCircle(Bitmap imgROI, double sigma = 0.33)
         {
             CircleF[] circles;
             if (imgROI == null)
@@ -3241,17 +3241,21 @@ namespace Vision_Measurement
                 return (0, PointF.Empty);
             }
             Image<Gray, byte> img = imgROI.ToImage<Gray, byte>();
-            if (img.Height > 300 || img.Width > 300)
-            {
-                circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, img.Height / 2, 125, 30, 1, img.Height / 2);
-            }
-            else
-            {
-                circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, img.Height / 10, 25, 25, 1, (int)(1.33 * (img.Height / 2)));
-            }
+            double median = CalcMedian(img);
+            double upper = Math.Min(255, (1 + sigma) * median);
+            double lower = Math.Max(0, (1 - sigma) * median);
+            circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, img.Height / 2, upper, 0.1 * upper, 1, (int)(1.33 * (img.Height / 2)));
             if (circles.Length == 0)
             {
-                return (0, PointF.Empty);
+                circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, img.Height / 2, lower, 0.1 * upper, 1, (int)(1.33 * (img.Height / 2)));
+                if(circles.Length == 0)
+                {
+                    circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, img.Height, lower, 0.1 * upper, 1, (int)(1.33 * (img.Height / 2)));
+                    if(circles.Length == 0)
+                    {
+                        return (0, PointF.Empty);
+                    }
+                }
             }
             float radius = 0;
             int j = 0;
