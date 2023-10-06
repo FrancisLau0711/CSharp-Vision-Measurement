@@ -129,6 +129,12 @@ namespace Vision_Measurement
                 if (File.Exists(filepath))
                 {
                     Image scaledImage;
+                    if(isGrayScale)
+                    {
+                        button3.Text = "GrayScale";
+                        button3.Image = Properties.Resources.Grayscale_Icon;
+                        isGrayScale = false;
+                    }
                     rawImage = Image.FromFile(filepath);
                     double aspectRatio = (double)rawImage.Width / (double)rawImage.Height;
                     if (aspectRatio > 1)
@@ -3249,6 +3255,8 @@ namespace Vision_Measurement
             double median = CalcMedian(img);
             double upper = Math.Min(255, (1 + sigma) * median);
             double lower = Math.Max(0, (1 - sigma) * median);
+            CvInvoke.EqualizeHist(img, img);
+            CvInvoke.GaussianBlur(img, img, new Size(0, 0), 3);
             circles = CvInvoke.HoughCircles(img, HoughType.Gradient, 1, img.Height, upper, 0.11 * upper, 0, (int)(1.33 * img.Height));
             if (circles.Length == 0)
             {
