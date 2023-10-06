@@ -2348,7 +2348,8 @@ namespace Vision_Measurement
                 }
                 scale = 1.0F;
                 scaleText.Text = "     " + ((int)Math.Round(scale * 100)).ToString() + "%";
-                Bitmap bmp = ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
+                Bitmap bmp = isGrayScale ? ResizeImage(grayImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale)) :
+                                           ResizeImage(rawImage, (int)(rawImage.Width * scale), (int)(rawImage.Height * scale));
                 pictureBox1.Image = bmp;
                 pictureBox1.Size = bmp.Size;
                 pictureBox1.Left = 0;
